@@ -1,6 +1,8 @@
 package compi2.codex_latinus.frontend;
 
 import java.awt.Color;
+import java.awt.Dimension;
+import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
@@ -10,7 +12,8 @@ import javax.swing.SwingUtilities;
  */
 public class MainWindow extends javax.swing.JFrame {
 
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(MainWindow.class.getName());
+    private static final String navText = "Codex Latinus";
+    private final EditorPanel editorPanel = new EditorPanel();
 
     /**
      * Creates new form MainWindow
@@ -18,7 +21,11 @@ public class MainWindow extends javax.swing.JFrame {
     public MainWindow() {
         initComponents();
         setTitle("Codex Latinus");
+        setMinimumSize(new Dimension(685, 461));
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
         initStyles();
+        navText("");
+        initialPanel();
     }
 
     /**
@@ -39,11 +46,11 @@ public class MainWindow extends javax.swing.JFrame {
         astButton = new javax.swing.JButton();
         synbolTableButton = new javax.swing.JButton();
         errorTableButton = new javax.swing.JButton();
-        newFileButton3 = new javax.swing.JButton();
+        newFileButton = new javax.swing.JButton();
         contentPane = new javax.swing.JPanel();
+        navTextLabel = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        getContentPane().setLayout(new java.awt.GridBagLayout());
 
         sidebarPanel.setBackground(new java.awt.Color(153, 51, 0));
         sidebarPanel.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
@@ -51,53 +58,91 @@ public class MainWindow extends javax.swing.JFrame {
         menuLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         menuLabel.setText("Menú de opciones");
         menuLabel.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        sidebarPanel.add(menuLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(2, 10, 160, -1));
+        sidebarPanel.add(menuLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(2, 10, 150, -1));
         sidebarPanel.add(jSeparator1, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 30, 140, 10));
 
+        openFileButton.setBackground(new java.awt.Color(153, 153, 0));
         openFileButton.setText("Abrir");
+        openFileButton.setBorder(new javax.swing.border.MatteBorder(null));
+        openFileButton.setBorderPainted(false);
         openFileButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         sidebarPanel.add(openFileButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 90, 164, 35));
 
+        saveFileButton.setBackground(new java.awt.Color(153, 153, 0));
         saveFileButton.setText("Guardar");
+        saveFileButton.setBorder(new javax.swing.border.MatteBorder(null));
+        saveFileButton.setBorderPainted(false);
         saveFileButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         sidebarPanel.add(saveFileButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 125, 164, 35));
 
+        astButton.setBackground(new java.awt.Color(153, 153, 0));
         astButton.setText("AST");
+        astButton.setBorder(new javax.swing.border.MatteBorder(null));
+        astButton.setBorderPainted(false);
         astButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         sidebarPanel.add(astButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 160, 164, 35));
 
+        synbolTableButton.setBackground(new java.awt.Color(153, 153, 0));
         synbolTableButton.setText("Tabla de símbolos");
+        synbolTableButton.setBorder(new javax.swing.border.MatteBorder(null));
+        synbolTableButton.setBorderPainted(false);
         synbolTableButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         sidebarPanel.add(synbolTableButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 195, 164, 35));
 
+        errorTableButton.setBackground(new java.awt.Color(153, 153, 0));
         errorTableButton.setText("Tabla de errores");
+        errorTableButton.setBorder(new javax.swing.border.MatteBorder(null));
+        errorTableButton.setBorderPainted(false);
         errorTableButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         sidebarPanel.add(errorTableButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 230, 164, 35));
 
-        newFileButton3.setText("Nuevo");
-        newFileButton3.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        sidebarPanel.add(newFileButton3, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 56, 164, 35));
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 0;
-        gridBagConstraints.ipady = 192;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
-        getContentPane().add(sidebarPanel, gridBagConstraints);
+        newFileButton.setBackground(new java.awt.Color(153, 153, 0));
+        newFileButton.setText("Nuevo");
+        newFileButton.setBorder(new javax.swing.border.MatteBorder(null));
+        newFileButton.setBorderPainted(false);
+        newFileButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        newFileButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                newFileButtonActionPerformed(evt);
+            }
+        });
+        sidebarPanel.add(newFileButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 56, 164, 35));
 
         contentPane.setBackground(new java.awt.Color(153, 255, 51));
         contentPane.setLayout(new java.awt.BorderLayout());
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 0;
-        gridBagConstraints.ipadx = 488;
-        gridBagConstraints.ipady = 457;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
-        gridBagConstraints.insets = new java.awt.Insets(0, 1, 0, 0);
-        getContentPane().add(contentPane, gridBagConstraints);
+
+        navTextLabel.setBackground(new java.awt.Color(0, 0, 0));
+        navTextLabel.setForeground(new java.awt.Color(0, 255, 0));
+        navTextLabel.setText("jLabel1");
+        navTextLabel.setMinimumSize(new java.awt.Dimension(685, 461));
+
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
+        getContentPane().setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addComponent(sidebarPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(2, 2, 2)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(navTextLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 685, Short.MAX_VALUE)
+                    .addComponent(contentPane, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(sidebarPanel, javax.swing.GroupLayout.DEFAULT_SIZE, 461, Short.MAX_VALUE)
+            .addGroup(layout.createSequentialGroup()
+                .addComponent(navTextLabel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(1, 1, 1)
+                .addComponent(contentPane, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void newFileButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_newFileButtonActionPerformed
+        paintPanel(editorPanel);
+        navText("Editor de código");
+    }//GEN-LAST:event_newFileButtonActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -106,7 +151,8 @@ public class MainWindow extends javax.swing.JFrame {
     private javax.swing.JButton errorTableButton;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JLabel menuLabel;
-    private javax.swing.JButton newFileButton3;
+    private javax.swing.JLabel navTextLabel;
+    private javax.swing.JButton newFileButton;
     private javax.swing.JButton openFileButton;
     private javax.swing.JButton saveFileButton;
     private javax.swing.JPanel sidebarPanel;
@@ -119,14 +165,29 @@ public class MainWindow extends javax.swing.JFrame {
         contentPane.revalidate();
         contentPane.repaint();
     }
-    
-        /**
+
+    /**
      * Genera los estilos de los componentes.
      */
     private void initStyles() {
         menuLabel.putClientProperty("FlatLaf.style", "font: bold $h3.regular.font");
         menuLabel.setForeground(Color.white);
+        
+        navTextLabel.setOpaque(true);
+        navTextLabel.setBackground(Color.BLACK);
+        navTextLabel.setForeground(new Color(0, 255, 0));
+        navTextLabel.setFont(new java.awt.Font("Monospaced", java.awt.Font.BOLD, 13));
+        navTextLabel.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 10, 5, 10));
 
         SwingUtilities.updateComponentTreeUI(this);
+    }
+
+    private void navText(String optionMenu) {
+        navTextLabel.setText(navText + "/" + optionMenu);
+    }
+    
+    private void initialPanel() {
+        paintPanel(editorPanel);
+        navText("Editor de código");
     }
 }
