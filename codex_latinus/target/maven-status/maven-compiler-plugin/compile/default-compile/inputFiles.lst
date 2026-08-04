@@ -1,3 +1,11 @@
 /home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/compi2/codex_latinus/Codex_latinus.java
+/home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/compi2/codex_latinus/backend/Compiler.java
+/home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/compi2/codex_latinus/backend/PigLatinVisitor.java
 /home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/compi2/codex_latinus/frontend/EditorPanel.java
 /home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/compi2/codex_latinus/frontend/MainWindow.java
+/home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/target/generated-sources/antlr4/compi2.codex_latinus/Codex_latinusBaseListener.java
+/home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/target/generated-sources/antlr4/compi2.codex_latinus/Codex_latinusBaseVisitor.java
+/home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/target/generated-sources/antlr4/compi2.codex_latinus/Codex_latinusLexer.java
+/home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/target/generated-sources/antlr4/compi2.codex_latinus/Codex_latinusListener.java
+/home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/target/generated-sources/antlr4/compi2.codex_latinus/Codex_latinusParser.java
+/home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/target/generated-sources/antlr4/compi2.codex_latinus/Codex_latinusVisitor.java

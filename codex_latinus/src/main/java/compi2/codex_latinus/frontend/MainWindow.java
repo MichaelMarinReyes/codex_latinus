@@ -45,8 +45,11 @@ public class MainWindow extends javax.swing.JFrame {
         saveFileButton = new javax.swing.JButton();
         astButton = new javax.swing.JButton();
         synbolTableButton = new javax.swing.JButton();
-        errorTableButton = new javax.swing.JButton();
+        semanticErrorButton = new javax.swing.JButton();
         newFileButton = new javax.swing.JButton();
+        lexerErrorButton = new javax.swing.JButton();
+        sintaxErrorButton1 = new javax.swing.JButton();
+        semanticErrorButton1 = new javax.swing.JButton();
         contentPane = new javax.swing.JPanel();
         navTextLabel = new javax.swing.JLabel();
 
@@ -89,12 +92,12 @@ public class MainWindow extends javax.swing.JFrame {
         synbolTableButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         sidebarPanel.add(synbolTableButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 195, 164, 35));
 
-        errorTableButton.setBackground(new java.awt.Color(153, 153, 0));
-        errorTableButton.setText("Tabla de errores");
-        errorTableButton.setBorder(new javax.swing.border.MatteBorder(null));
-        errorTableButton.setBorderPainted(false);
-        errorTableButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        sidebarPanel.add(errorTableButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 230, 164, 35));
+        semanticErrorButton.setBackground(new java.awt.Color(153, 153, 0));
+        semanticErrorButton.setText("Pila de procesos");
+        semanticErrorButton.setBorder(new javax.swing.border.MatteBorder(null));
+        semanticErrorButton.setBorderPainted(false);
+        semanticErrorButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        sidebarPanel.add(semanticErrorButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 335, 164, 35));
 
         newFileButton.setBackground(new java.awt.Color(153, 153, 0));
         newFileButton.setText("Nuevo");
@@ -107,6 +110,27 @@ public class MainWindow extends javax.swing.JFrame {
             }
         });
         sidebarPanel.add(newFileButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 56, 164, 35));
+
+        lexerErrorButton.setBackground(new java.awt.Color(153, 153, 0));
+        lexerErrorButton.setText("Tabla de errores léxicos");
+        lexerErrorButton.setBorder(new javax.swing.border.MatteBorder(null));
+        lexerErrorButton.setBorderPainted(false);
+        lexerErrorButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        sidebarPanel.add(lexerErrorButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 230, 164, 35));
+
+        sintaxErrorButton1.setBackground(new java.awt.Color(153, 153, 0));
+        sintaxErrorButton1.setText("Tabla de errores sintácticos");
+        sintaxErrorButton1.setBorder(new javax.swing.border.MatteBorder(null));
+        sintaxErrorButton1.setBorderPainted(false);
+        sintaxErrorButton1.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        sidebarPanel.add(sintaxErrorButton1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 265, 164, 35));
+
+        semanticErrorButton1.setBackground(new java.awt.Color(153, 153, 0));
+        semanticErrorButton1.setText("Tabla de errores semánticos");
+        semanticErrorButton1.setBorder(new javax.swing.border.MatteBorder(null));
+        semanticErrorButton1.setBorderPainted(false);
+        semanticErrorButton1.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        sidebarPanel.add(semanticErrorButton1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 300, 164, 35));
 
         contentPane.setBackground(new java.awt.Color(153, 255, 51));
         contentPane.setLayout(new java.awt.BorderLayout());
@@ -148,14 +172,17 @@ public class MainWindow extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton astButton;
     private javax.swing.JPanel contentPane;
-    private javax.swing.JButton errorTableButton;
     private javax.swing.JSeparator jSeparator1;
+    private javax.swing.JButton lexerErrorButton;
     private javax.swing.JLabel menuLabel;
     private javax.swing.JLabel navTextLabel;
     private javax.swing.JButton newFileButton;
     private javax.swing.JButton openFileButton;
     private javax.swing.JButton saveFileButton;
+    private javax.swing.JButton semanticErrorButton;
+    private javax.swing.JButton semanticErrorButton1;
     private javax.swing.JPanel sidebarPanel;
+    private javax.swing.JButton sintaxErrorButton1;
     private javax.swing.JButton synbolTableButton;
     // End of variables declaration//GEN-END:variables
 

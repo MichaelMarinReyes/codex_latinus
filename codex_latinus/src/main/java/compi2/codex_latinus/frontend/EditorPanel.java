@@ -1,5 +1,6 @@
 package compi2.codex_latinus.frontend;
 
+import compi2.codex_latinus.backend.Compiler;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
@@ -65,7 +66,6 @@ public class EditorPanel extends javax.swing.JPanel {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     // End of variables declaration//GEN-END:variables
-    
     /**
      * Inicializa los componentes del editor de código, consola, números de
      * línea, botón compilar y barra de estado, configurando el fondo en tono
@@ -160,14 +160,24 @@ public class EditorPanel extends javax.swing.JPanel {
      * Acción que se ejecuta al presionar el botón compilar.
      */
     private void compileButtonActionPerformed(ActionEvent evt) {
+        consoleTextArea.setText("");
         printToConsole("Iniciando compilación...");
         String codigoFuente = codeTextArea.getText();
 
-        // Ejemplo básico de uso:
         if (codigoFuente.trim().isEmpty()) {
             printToConsole("Error: El editor está vacío.");
         } else {
-            printToConsole("Código analizado correctamente.");
+            try {
+                org.antlr.v4.runtime.tree.ParseTree arbol = Compiler.parseCode(codigoFuente);
+
+                printToConsole("Código analizado correctamente.");
+                printToConsole("Estructura del AST generado:");
+                printToConsole(arbol.toStringTree());
+
+            } catch (Exception ex) {
+                printToConsole("Error de compilación / análisis:");
+                printToConsole(ex.getMessage());
+            }
         }
     }
 
