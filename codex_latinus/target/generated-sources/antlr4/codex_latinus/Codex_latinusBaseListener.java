@@ -341,18 +341,6 @@ public class Codex_latinusBaseListener implements Codex_latinusListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterImprimir_sentencia(Codex_latinusParser.Imprimir_sentenciaContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitImprimir_sentencia(Codex_latinusParser.Imprimir_sentenciaContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterLeer_sentencia(Codex_latinusParser.Leer_sentenciaContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -372,6 +360,18 @@ public class Codex_latinusBaseListener implements Codex_latinusListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitAsignacion_sentencia(Codex_latinusParser.Asignacion_sentenciaContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterImprimir_sentencia(Codex_latinusParser.Imprimir_sentenciaContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitImprimir_sentencia(Codex_latinusParser.Imprimir_sentenciaContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

@@ -37,6 +37,7 @@ public class Compiler {
 
         ParseTree tree = parser.init();
 
+        System.out.println(tree.toStringTree(parser));
         if (errorListener.hasErrors()) {
             return "Se encontraron errores léxicos o sintácticos. Revisa la tabla de errores.";
         }

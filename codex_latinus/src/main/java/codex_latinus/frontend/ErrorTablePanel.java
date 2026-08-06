@@ -2,9 +2,12 @@ package codex_latinus.frontend;
 
 import codex_latinus.backend.errors.CompilationError;
 import java.awt.BorderLayout;
+import java.awt.Font;
 import java.util.List;
+import javax.swing.JLabel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableModel;
 
 /**
@@ -15,12 +18,16 @@ public class ErrorTablePanel extends javax.swing.JPanel {
 
     private JTable errorTable;
     private DefaultTableModel tableModel;
+    private JScrollPane scrollPane;
+    private JLabel emptyMessageLabel;
+    
     
     /**
      * Creates new form ErrorTablePanel
      */
     public ErrorTablePanel() {
         initComponents();
+        initCustomComponents();
         loadErrors(null);
     }
 
@@ -49,10 +56,10 @@ public class ErrorTablePanel extends javax.swing.JPanel {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     // End of variables declaration//GEN-END:variables
 
-    private void initTable(List<CompilationError> errors) {
+    private void initCustomComponents() {
         setLayout(new BorderLayout());
 
-        // Definir columnas
+        // Definir columnas para cuando sí haya errores
         String[] columnNames = {"Tipo", "Descripción del Error", "Línea", "Columna"};
         
         tableModel = new DefaultTableModel(columnNames, 0) {
@@ -63,33 +70,48 @@ public class ErrorTablePanel extends javax.swing.JPanel {
         };
 
         errorTable = new JTable(tableModel);
-        
-        // Agregar la tabla dentro de un JScrollPane para que se visualice correctamente
-        JScrollPane scrollPane = new JScrollPane(errorTable);
-        add(scrollPane, BorderLayout.CENTER);
+        scrollPane = new JScrollPane(errorTable);
 
-        // Cargar los datos si existen
-        loadErrors(errors);
+        // Etiqueta creativa para cuando no hay errores
+        emptyMessageLabel = new JLabel(
+            "<html><div style='text-align: center;'>"
+            + "<h2 style='color: #2e7d32;'>¡Zona Libre de Infracciones!</h2>"
+            + "<p style='color: #555;'>Los firewalls biométricos de los Cerdos Tiranos no detectaron errores.</p>"
+            + "<p style='color: #777; font-size: 11px;'>El código fuente ha pasado la inspección con éxito 🐷✨</p>"
+            + "</div></html>", 
+            SwingConstants.CENTER
+        );
+        emptyMessageLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
     }
     
     /**
      * Carga o actualiza la lista de errores en el modelo de la tabla.
+     * Si no hay errores, muestra un mensaje creativo en lugar de una tabla vacía.
      */
     public void loadErrors(List<CompilationError> errors) {
-        if (tableModel == null) return;
-        
-        tableModel.setRowCount(0);
-        
-        if (errors != null) {
-            for (CompilationError err : errors) {
-                Object[] rowData = {
-                    err.getType(),
-                    err.getMessage(),
-                    err.getLine(),
-                    err.getColumn()
-                };
-                tableModel.addRow(rowData);
+        removeAll(); // Limpia el panel actual
+
+        if (errors == null || errors.isEmpty()) {
+            // Mostrar mensaje creativo si todo está limpio
+            add(emptyMessageLabel, BorderLayout.CENTER);
+        } else {
+            // Si hay errores, rellenar el modelo y mostrar la tabla
+            if (tableModel != null) {
+                tableModel.setRowCount(0);
+                for (CompilationError err : errors) {
+                    Object[] rowData = {
+                        err.getType(),
+                        err.getMessage(),
+                        err.getLine(),
+                        err.getColumn()
+                    };
+                    tableModel.addRow(rowData);
+                }
             }
+            add(scrollPane, BorderLayout.CENTER);
         }
+
+        revalidate();
+        repaint();
     }
 }

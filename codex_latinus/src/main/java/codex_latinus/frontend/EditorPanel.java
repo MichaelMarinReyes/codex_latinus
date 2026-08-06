@@ -178,8 +178,7 @@ public class EditorPanel extends javax.swing.JPanel {
             try {
                 String result = compiler.parseCode(codigoFuente);
 
-                printToConsole("Código analizado correctamente.");
-                printToConsole("Estructura del AST generado / Traducción:");
+                printToConsole("Código traducido de Codex latinus a PigLatin\n");
                 printToConsole(result);
 
             } catch (Exception ex) {

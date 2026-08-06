@@ -173,12 +173,6 @@ public interface Codex_latinusVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSentencia(Codex_latinusParser.SentenciaContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link Codex_latinusParser#imprimir_sentencia}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitImprimir_sentencia(Codex_latinusParser.Imprimir_sentenciaContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link Codex_latinusParser#leer_sentencia}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -190,6 +184,12 @@ public interface Codex_latinusVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitAsignacion_sentencia(Codex_latinusParser.Asignacion_sentenciaContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link Codex_latinusParser#imprimir_sentencia}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitImprimir_sentencia(Codex_latinusParser.Imprimir_sentenciaContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link Codex_latinusParser#si_sentencia}.
 	 * @param ctx the parse tree

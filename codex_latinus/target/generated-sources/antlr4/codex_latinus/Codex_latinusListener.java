@@ -278,16 +278,6 @@ public interface Codex_latinusListener extends ParseTreeListener {
 	 */
 	void exitSentencia(Codex_latinusParser.SentenciaContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link Codex_latinusParser#imprimir_sentencia}.
-	 * @param ctx the parse tree
-	 */
-	void enterImprimir_sentencia(Codex_latinusParser.Imprimir_sentenciaContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link Codex_latinusParser#imprimir_sentencia}.
-	 * @param ctx the parse tree
-	 */
-	void exitImprimir_sentencia(Codex_latinusParser.Imprimir_sentenciaContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link Codex_latinusParser#leer_sentencia}.
 	 * @param ctx the parse tree
 	 */
@@ -307,6 +297,16 @@ public interface Codex_latinusListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitAsignacion_sentencia(Codex_latinusParser.Asignacion_sentenciaContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link Codex_latinusParser#imprimir_sentencia}.
+	 * @param ctx the parse tree
+	 */
+	void enterImprimir_sentencia(Codex_latinusParser.Imprimir_sentenciaContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link Codex_latinusParser#imprimir_sentencia}.
+	 * @param ctx the parse tree
+	 */
+	void exitImprimir_sentencia(Codex_latinusParser.Imprimir_sentenciaContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link Codex_latinusParser#si_sentencia}.
 	 * @param ctx the parse tree
