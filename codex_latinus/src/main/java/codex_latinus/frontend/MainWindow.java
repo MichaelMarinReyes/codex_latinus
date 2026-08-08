@@ -8,6 +8,8 @@ import codex_latinus.backend.symbols.SymbolTable;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -66,12 +68,12 @@ public class MainWindow extends javax.swing.JFrame {
         lexerErrorButton = new javax.swing.JButton();
         sintaxErrorButton1 = new javax.swing.JButton();
         semanticErrorButton1 = new javax.swing.JButton();
+        editTextButton = new javax.swing.JButton();
         contentPane = new javax.swing.JPanel();
         navTextLabel = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
-        sidebarPanel.setBackground(new java.awt.Color(153, 51, 0));
         sidebarPanel.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         menuLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
@@ -80,7 +82,6 @@ public class MainWindow extends javax.swing.JFrame {
         sidebarPanel.add(menuLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(2, 10, 180, -1));
         sidebarPanel.add(jSeparator1, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 30, 160, 10));
 
-        openFileButton.setBackground(new java.awt.Color(153, 153, 0));
         openFileButton.setText("Abrir");
         openFileButton.setBorder(new javax.swing.border.MatteBorder(null));
         openFileButton.setBorderPainted(false);
@@ -90,16 +91,19 @@ public class MainWindow extends javax.swing.JFrame {
                 openFileButtonActionPerformed(evt);
             }
         });
-        sidebarPanel.add(openFileButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 90, 180, 35));
+        sidebarPanel.add(openFileButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 125, 180, 35));
 
-        saveFileButton.setBackground(new java.awt.Color(153, 153, 0));
         saveFileButton.setText("Guardar");
         saveFileButton.setBorder(new javax.swing.border.MatteBorder(null));
         saveFileButton.setBorderPainted(false);
         saveFileButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        sidebarPanel.add(saveFileButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 125, 180, 35));
+        saveFileButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                saveFileButtonActionPerformed(evt);
+            }
+        });
+        sidebarPanel.add(saveFileButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 160, 180, 35));
 
-        astButton.setBackground(new java.awt.Color(153, 153, 0));
         astButton.setText("AST");
         astButton.setBorder(new javax.swing.border.MatteBorder(null));
         astButton.setBorderPainted(false);
@@ -109,9 +113,8 @@ public class MainWindow extends javax.swing.JFrame {
                 astButtonActionPerformed(evt);
             }
         });
-        sidebarPanel.add(astButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 160, 180, 35));
+        sidebarPanel.add(astButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 195, 180, 35));
 
-        symbolTableButton.setBackground(new java.awt.Color(153, 153, 0));
         symbolTableButton.setText("Tabla de símbolos");
         symbolTableButton.setBorder(new javax.swing.border.MatteBorder(null));
         symbolTableButton.setBorderPainted(false);
@@ -121,9 +124,8 @@ public class MainWindow extends javax.swing.JFrame {
                 symbolTableButtonActionPerformed(evt);
             }
         });
-        sidebarPanel.add(symbolTableButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 195, 180, 35));
+        sidebarPanel.add(symbolTableButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 230, 180, 35));
 
-        semanticErrorButton.setBackground(new java.awt.Color(153, 153, 0));
         semanticErrorButton.setText("Pila de procesos");
         semanticErrorButton.setBorder(new javax.swing.border.MatteBorder(null));
         semanticErrorButton.setBorderPainted(false);
@@ -133,9 +135,8 @@ public class MainWindow extends javax.swing.JFrame {
                 semanticErrorButtonActionPerformed(evt);
             }
         });
-        sidebarPanel.add(semanticErrorButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 335, 180, 35));
+        sidebarPanel.add(semanticErrorButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 370, 180, 35));
 
-        newFileButton.setBackground(new java.awt.Color(153, 153, 0));
         newFileButton.setText("Nuevo");
         newFileButton.setBorder(new javax.swing.border.MatteBorder(null));
         newFileButton.setBorderPainted(false);
@@ -145,9 +146,8 @@ public class MainWindow extends javax.swing.JFrame {
                 newFileButtonActionPerformed(evt);
             }
         });
-        sidebarPanel.add(newFileButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 56, 180, 35));
+        sidebarPanel.add(newFileButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 90, 180, 35));
 
-        lexerErrorButton.setBackground(new java.awt.Color(153, 153, 0));
         lexerErrorButton.setText("Tabla de errores léxicos");
         lexerErrorButton.setBorder(new javax.swing.border.MatteBorder(null));
         lexerErrorButton.setBorderPainted(false);
@@ -157,9 +157,8 @@ public class MainWindow extends javax.swing.JFrame {
                 lexerErrorButtonActionPerformed(evt);
             }
         });
-        sidebarPanel.add(lexerErrorButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 230, 180, 35));
+        sidebarPanel.add(lexerErrorButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 265, 180, 35));
 
-        sintaxErrorButton1.setBackground(new java.awt.Color(153, 153, 0));
         sintaxErrorButton1.setText("Tabla de errores sintácticos");
         sintaxErrorButton1.setBorder(new javax.swing.border.MatteBorder(null));
         sintaxErrorButton1.setBorderPainted(false);
@@ -169,9 +168,8 @@ public class MainWindow extends javax.swing.JFrame {
                 sintaxErrorButton1ActionPerformed(evt);
             }
         });
-        sidebarPanel.add(sintaxErrorButton1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 265, 180, 35));
+        sidebarPanel.add(sintaxErrorButton1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 300, 180, 35));
 
-        semanticErrorButton1.setBackground(new java.awt.Color(153, 153, 0));
         semanticErrorButton1.setText("Tabla de errores semánticos");
         semanticErrorButton1.setBorder(new javax.swing.border.MatteBorder(null));
         semanticErrorButton1.setBorderPainted(false);
@@ -181,9 +179,19 @@ public class MainWindow extends javax.swing.JFrame {
                 semanticErrorButton1ActionPerformed(evt);
             }
         });
-        sidebarPanel.add(semanticErrorButton1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 300, 180, 35));
+        sidebarPanel.add(semanticErrorButton1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 335, 180, 35));
 
-        contentPane.setBackground(new java.awt.Color(153, 255, 51));
+        editTextButton.setText("Editor de texto");
+        editTextButton.setBorder(new javax.swing.border.MatteBorder(null));
+        editTextButton.setBorderPainted(false);
+        editTextButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        editTextButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                editTextButtonActionPerformed(evt);
+            }
+        });
+        sidebarPanel.add(editTextButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 56, 180, 35));
+
         contentPane.setLayout(new java.awt.BorderLayout());
 
         navTextLabel.setBackground(new java.awt.Color(0, 0, 0));
@@ -215,15 +223,57 @@ public class MainWindow extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void newFileButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_newFileButtonActionPerformed
+        String currentText = editorPanel.getCodeText();
+
+        if (currentText != null && !currentText.trim().isEmpty()) {
+            int option = JOptionPane.showConfirmDialog(
+                    this,
+                    "El editor contiene texto. ¿Desea guardar los cambios antes de crear un nuevo archivo?",
+                    "Advertencia - Codex Latinus",
+                    JOptionPane.YES_NO_CANCEL_OPTION,
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+            if (option == JOptionPane.YES_OPTION) {
+                boolean saved = saveFilesAction();
+                if (!saved) {
+                    return;
+                }
+            } else if (option == JOptionPane.CANCEL_OPTION || option == JOptionPane.CLOSED_OPTION) {
+                return;
+            }
+        }
+
+        editorPanel.setCodeText("");
         paintPanel(editorPanel);
         navText("Editor de código");
     }//GEN-LAST:event_newFileButtonActionPerformed
 
     private void openFileButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openFileButtonActionPerformed
+        String currentText = editorPanel.getCodeText();
+
+        if (currentText != null && !currentText.trim().isEmpty()) {
+            int option = JOptionPane.showConfirmDialog(
+                    this,
+                    "El editor contiene texto. ¿Desea guardar los cambios antes de abrir un archivo?",
+                    "Advertencia - Codex Latinus",
+                    JOptionPane.YES_NO_CANCEL_OPTION,
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+            if (option == JOptionPane.YES_OPTION) {
+                boolean saved = saveFilesAction();
+                if (!saved) {
+                    return;
+                }
+            } else if (option == JOptionPane.CANCEL_OPTION || option == JOptionPane.CLOSED_OPTION) {
+                return;
+            }
+        }
+
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Seleccionar archivo de código (Latín o PigLatin)");
 
-        // Crear el filtro para permitir solo archivos .lat y .pig
         FileNameExtensionFilter filter = new FileNameExtensionFilter("Archivos de Código (*.lat, *.pig)", "lat", "pig");
         fileChooser.setFileFilter(filter);
 
@@ -235,13 +285,10 @@ public class MainWindow extends javax.swing.JFrame {
             try {
                 String contenido = new String(Files.readAllBytes(fileToOpen.toPath()), StandardCharsets.UTF_8);
 
-                // Mostrar el panel del editor en la interfaz principal
                 paintPanel(editorPanel);
 
-                // Actualizar el texto de la ruta en la barra superior indicando el archivo abierto
                 navText("Editor de código / " + fileToOpen.getName());
 
-                // Enviar el contenido leído al JTextArea del EditorPanel
                 editorPanel.setCodeText(contenido);
 
             } catch (java.io.IOException e) {
@@ -317,10 +364,21 @@ public class MainWindow extends javax.swing.JFrame {
         navText("Pila de procesos");
     }//GEN-LAST:event_semanticErrorButtonActionPerformed
 
+    private void editTextButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_editTextButtonActionPerformed
+        editorPanel.setCodeText("");
+        paintPanel(editorPanel);
+        navText("Editor de código");
+    }//GEN-LAST:event_editTextButtonActionPerformed
+
+    private void saveFileButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveFileButtonActionPerformed
+        saveFilesAction();
+    }//GEN-LAST:event_saveFileButtonActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton astButton;
     private javax.swing.JPanel contentPane;
+    private javax.swing.JButton editTextButton;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JButton lexerErrorButton;
     private javax.swing.JLabel menuLabel;
@@ -367,7 +425,6 @@ public class MainWindow extends javax.swing.JFrame {
         navText("Editor de código");
     }
 
-    // Método auxiliar recursivo para buscar en los sub-ámbitos y padres
     private void collectSymbolsRecursive(Scope scope, List<Symbol> list) {
         if (scope == null) {
             return;
@@ -376,5 +433,78 @@ public class MainWindow extends javax.swing.JFrame {
         if (scope.getSymbols() != null) {
             list.addAll(scope.getSymbols().values());
         }
+    }
+
+    private boolean saveFilesAction() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Seleccionar carpeta o indicar nombre para el proyecto");
+
+        fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+
+        int userSelection = fileChooser.showSaveDialog(this);
+
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            File targetDirectory;
+
+            String baseName = "proyecto";
+            if (selectedFile.isDirectory()) {
+                targetDirectory = selectedFile;
+            } else {
+                targetDirectory = selectedFile.getParentFile();
+                String name = selectedFile.getName();
+                int dotIndex = name.lastIndexOf('.');
+                if (dotIndex > 0) {
+                    baseName = name.substring(0, dotIndex);
+                } else {
+                    baseName = name;
+                }
+            }
+
+            File projectFolder = new File(targetDirectory, baseName);
+            if (!projectFolder.exists()) {
+                boolean created = projectFolder.mkdirs();
+                if (!created) {
+                    JOptionPane.showMessageDialog(this,
+                            "No se pudo crear la carpeta para los archivos.",
+                            "Error de almacenamiento",
+                            JOptionPane.ERROR_MESSAGE);
+                    return false;
+                }
+            }
+
+            File latFile = new File(projectFolder, baseName + ".lat");
+            File pigFile = new File(projectFolder, baseName + ".pig");
+
+            try {
+                String codeContent = editorPanel.getCodeText();
+                try (FileWriter writer = new FileWriter(latFile, StandardCharsets.UTF_8)) {
+                    writer.write(codeContent);
+                }
+
+                compiler.parseCode(codeContent);
+                String pigContent = editorPanel.getResult() != null ? editorPanel.getResult() : "";
+
+                try (FileWriter writerPig = new FileWriter(pigFile, StandardCharsets.UTF_8)) {
+                    writerPig.write(pigContent);
+                }
+
+                JOptionPane.showMessageDialog(this,
+                        "Carpeta y archivos creados exitosamente en:\n" + projectFolder.getAbsolutePath()
+                        + "\n- " + latFile.getName()
+                        + "\n- " + pigFile.getName(),
+                        "Guardado Exitoso",
+                        JOptionPane.INFORMATION_MESSAGE);
+                return true;
+
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this,
+                        "Error al guardar los archivos: " + e.getMessage(),
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
+        }
+        return false;
     }
 }

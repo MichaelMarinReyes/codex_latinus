@@ -34,6 +34,7 @@ public class EditorPanel extends javax.swing.JPanel {
     private JButton compileButton;
     private LineNumberComponent lineNumberComponent;
     private Compiler compiler = new Compiler();
+    private String result = "";
 
     /**
      * Creates new form EditorPanel
@@ -78,6 +79,10 @@ public class EditorPanel extends javax.swing.JPanel {
     public void setCodeText(String text) {
         codeTextArea.setText(text);
     }
+    
+    public String getResult() {
+        return result;
+    }
 
     /**
      * Inicializa los componentes del editor de código, consola, números de
@@ -90,7 +95,6 @@ public class EditorPanel extends javax.swing.JPanel {
         Color backgroundGray = new Color(240, 240, 240);
         this.setBackground(backgroundGray);
 
-        // Editor de Código
         codeTextArea = new JTextArea();
         codeTextArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
         codeTextArea.setTabSize(4);
@@ -98,7 +102,6 @@ public class EditorPanel extends javax.swing.JPanel {
 
         lineNumberComponent = new LineNumberComponent(codeTextArea);
 
-        // Scroll responsivo para el editor de código con numeración de líneas
         JScrollPane codeScrollPane = new JScrollPane(codeTextArea);
         codeScrollPane.setRowHeaderView(lineNumberComponent);
         codeScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
@@ -106,25 +109,21 @@ public class EditorPanel extends javax.swing.JPanel {
         codeScrollPane.setBackground(backgroundGray);
         codeScrollPane.getViewport().setBackground(new Color(255, 255, 255));
 
-        // Área de consola de Resultados / Errores
         consoleTextArea = new JTextArea();
         consoleTextArea.setFont(new Font("Monospaced", Font.PLAIN, 13));
         consoleTextArea.setEditable(false);
         consoleTextArea.setBackground(new Color(30, 30, 30));
         consoleTextArea.setForeground(new Color(220, 220, 220));
 
-        // Scroll responsivo para la consola
         JScrollPane consoleScrollPane = new JScrollPane(consoleTextArea);
         consoleScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         consoleScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         consoleScrollPane.setBorder(BorderFactory.createTitledBorder(" Consola de Resultados "));
 
-        // Panel inferior para Botón Compilar y Línea/Columna
         JPanel statusPanel = new JPanel(new BorderLayout());
         statusPanel.setBackground(backgroundGray);
         statusPanel.setBorder(BorderFactory.createEmptyBorder(2, 5, 2, 5));
 
-        // Botón Compilar a la izquierda del panel inferior
         compileButton = new JButton("Compilar");
         compileButton.setBackground(Color.GREEN);
         compileButton.setForeground(Color.WHITE);
@@ -136,12 +135,10 @@ public class EditorPanel extends javax.swing.JPanel {
         leftStatusPanel.add(compileButton);
         statusPanel.add(leftStatusPanel, BorderLayout.WEST);
 
-        // Etiqueta de Línea y Columna a la derecha
         statusLabel = new JLabel("Línea: 1 | Columna: 1");
         statusLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
         statusPanel.add(statusLabel, BorderLayout.EAST);
 
-        // JSplitPane para dividir el editor y la consola
         JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, codeScrollPane, consoleScrollPane);
         splitPane.setResizeWeight(0.75); // 75% para el editor, 25% para la consola por defecto
         splitPane.setDividerLocation(350);
@@ -174,14 +171,13 @@ public class EditorPanel extends javax.swing.JPanel {
      */
     private void compileButtonActionPerformed(ActionEvent evt) {
         consoleTextArea.setText("");
-        printToConsole("Iniciando compilación...");
         String codigoFuente = codeTextArea.getText();
 
         if (codigoFuente.trim().isEmpty()) {
             printToConsole("Error: El editor está vacío.");
         } else {
             try {
-                String result = compiler.parseCode(codigoFuente);
+                result = compiler.parseCode(codigoFuente);
 
                 printToConsole("Código traducido de Codex latinus a PigLatin\n");
                 printToConsole(result);
@@ -206,7 +202,6 @@ public class EditorPanel extends javax.swing.JPanel {
             setBackground(new Color(230, 230, 230));
             setForeground(new Color(120, 120, 120));
 
-            // Actualizar cuando cambie el texto o el tamaño de fuente
             textArea.getDocument().addDocumentListener(new DocumentListener() {
                 @Override
                 public void insertUpdate(DocumentEvent e) {

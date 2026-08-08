@@ -1,9 +1,6 @@
 package codex_latinus.backend.errors;
 
-import org.antlr.v4.runtime.BaseErrorListener;
-import org.antlr.v4.runtime.Lexer;
-import org.antlr.v4.runtime.RecognitionException;
-import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.*;
 
 import java.util.List;
 
@@ -19,9 +16,33 @@ public class CustomErrorListener extends BaseErrorListener {
                             int line, int charPositionInLine, String msg,
                             RecognitionException e) {
 
-        String errorType = (recognizer instanceof Lexer) ? "LEXICO" : "SINTACTICO";
+        boolean isLexer = (recognizer instanceof Lexer);
+        String errorType = isLexer ? "LEXICO" : "SINTACTICO";
+        String friendlyMessage;
 
-        errorList.add(new CompilationError(errorType, msg, line, charPositionInLine));
+        if (isLexer) {
+            String badChar = (offendingSymbol != null) ? offendingSymbol.toString() : "desconocido";
+            friendlyMessage = "Carácter o símbolo no reconocido por el lenguaje: '" + badChar + "'.";
+        } else {
+            String tokenText = "";
+            if (offendingSymbol instanceof Token) {
+                tokenText = ((Token) offendingSymbol).getText();
+            }
+
+            if (msg != null && msg.contains("mismatched input")) {
+                friendlyMessage = "Estructura incorrecta o token inesperado cerca de '" + tokenText + "'.";
+            } else if (msg != null && msg.contains("extraneous input")) {
+                friendlyMessage = "Hay un elemento sobrante o mal ubicado: '" + tokenText + "'.";
+            } else if (msg != null && msg.contains("missing")) {
+                friendlyMessage = "Falta un componente o delimitador obligatorio antes o cerca de '" + tokenText + "'.";
+            } else if (msg != null && msg.contains("no viable alternative")) {
+                friendlyMessage = "La sentencia no coincide con ninguna estructura válida del lenguaje cerca de '" + tokenText + "'.";
+            } else {
+                friendlyMessage = "Error de sintaxis cerca de '" + tokenText + "'. Verifique la gramática.";
+            }
+        }
+
+        errorList.add(new CompilationError(errorType, friendlyMessage, line, charPositionInLine));
     }
 
     public boolean hasErrors() {
