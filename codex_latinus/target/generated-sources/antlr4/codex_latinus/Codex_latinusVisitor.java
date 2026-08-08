@@ -95,6 +95,18 @@ public interface Codex_latinusVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitFuncion(Codex_latinusParser.FuncionContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link Codex_latinusParser#ratio_funcion}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitRatio_funcion(Codex_latinusParser.Ratio_funcionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link Codex_latinusParser#actio_funcion}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitActio_funcion(Codex_latinusParser.Actio_funcionContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link Codex_latinusParser#tipo_dato}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -197,6 +209,12 @@ public interface Codex_latinusVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSi_sentencia(Codex_latinusParser.Si_sentenciaContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link Codex_latinusParser#aliter_bloque}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitAliter_bloque(Codex_latinusParser.Aliter_bloqueContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link Codex_latinusParser#ciclo_dum}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -244,6 +262,24 @@ public interface Codex_latinusVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitCondicion(Codex_latinusParser.CondicionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link Codex_latinusParser#conjuncion}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitConjuncion(Codex_latinusParser.ConjuncionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link Codex_latinusParser#negacion_logica}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNegacion_logica(Codex_latinusParser.Negacion_logicaContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link Codex_latinusParser#primaria_logica}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPrimaria_logica(Codex_latinusParser.Primaria_logicaContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link Codex_latinusParser#operador_relacional}.
 	 * @param ctx the parse tree

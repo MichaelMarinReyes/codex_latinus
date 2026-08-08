@@ -2,11 +2,15 @@ package codex_latinus.frontend;
 
 import codex_latinus.backend.Compiler;
 import codex_latinus.backend.errors.CompilationError;
+import codex_latinus.backend.symbols.Scope;
+import codex_latinus.backend.symbols.Symbol;
+import codex_latinus.backend.symbols.SymbolTable;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.swing.JFileChooser;
@@ -25,6 +29,8 @@ public class MainWindow extends javax.swing.JFrame {
     private static final String navText = "Codex Latinus";
     private final EditorPanel editorPanel = new EditorPanel();
     private Compiler compiler = new Compiler();
+    private ParserTreePanel treePanel = new ParserTreePanel();
+    private final StackVisualizerPanel stackVisualizerPanel = new StackVisualizerPanel();
 
     /**
      * Creates new form MainWindow
@@ -71,8 +77,8 @@ public class MainWindow extends javax.swing.JFrame {
         menuLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         menuLabel.setText("Menú de opciones");
         menuLabel.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        sidebarPanel.add(menuLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(2, 10, 150, -1));
-        sidebarPanel.add(jSeparator1, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 30, 140, 10));
+        sidebarPanel.add(menuLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(2, 10, 180, -1));
+        sidebarPanel.add(jSeparator1, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 30, 160, 10));
 
         openFileButton.setBackground(new java.awt.Color(153, 153, 0));
         openFileButton.setText("Abrir");
@@ -84,14 +90,14 @@ public class MainWindow extends javax.swing.JFrame {
                 openFileButtonActionPerformed(evt);
             }
         });
-        sidebarPanel.add(openFileButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 90, 164, 35));
+        sidebarPanel.add(openFileButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 90, 180, 35));
 
         saveFileButton.setBackground(new java.awt.Color(153, 153, 0));
         saveFileButton.setText("Guardar");
         saveFileButton.setBorder(new javax.swing.border.MatteBorder(null));
         saveFileButton.setBorderPainted(false);
         saveFileButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        sidebarPanel.add(saveFileButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 125, 164, 35));
+        sidebarPanel.add(saveFileButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 125, 180, 35));
 
         astButton.setBackground(new java.awt.Color(153, 153, 0));
         astButton.setText("AST");
@@ -103,7 +109,7 @@ public class MainWindow extends javax.swing.JFrame {
                 astButtonActionPerformed(evt);
             }
         });
-        sidebarPanel.add(astButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 160, 164, 35));
+        sidebarPanel.add(astButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 160, 180, 35));
 
         symbolTableButton.setBackground(new java.awt.Color(153, 153, 0));
         symbolTableButton.setText("Tabla de símbolos");
@@ -115,14 +121,19 @@ public class MainWindow extends javax.swing.JFrame {
                 symbolTableButtonActionPerformed(evt);
             }
         });
-        sidebarPanel.add(symbolTableButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 195, 164, 35));
+        sidebarPanel.add(symbolTableButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 195, 180, 35));
 
         semanticErrorButton.setBackground(new java.awt.Color(153, 153, 0));
         semanticErrorButton.setText("Pila de procesos");
         semanticErrorButton.setBorder(new javax.swing.border.MatteBorder(null));
         semanticErrorButton.setBorderPainted(false);
         semanticErrorButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        sidebarPanel.add(semanticErrorButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 335, 164, 35));
+        semanticErrorButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                semanticErrorButtonActionPerformed(evt);
+            }
+        });
+        sidebarPanel.add(semanticErrorButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 335, 180, 35));
 
         newFileButton.setBackground(new java.awt.Color(153, 153, 0));
         newFileButton.setText("Nuevo");
@@ -134,7 +145,7 @@ public class MainWindow extends javax.swing.JFrame {
                 newFileButtonActionPerformed(evt);
             }
         });
-        sidebarPanel.add(newFileButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 56, 164, 35));
+        sidebarPanel.add(newFileButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 56, 180, 35));
 
         lexerErrorButton.setBackground(new java.awt.Color(153, 153, 0));
         lexerErrorButton.setText("Tabla de errores léxicos");
@@ -146,7 +157,7 @@ public class MainWindow extends javax.swing.JFrame {
                 lexerErrorButtonActionPerformed(evt);
             }
         });
-        sidebarPanel.add(lexerErrorButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 230, 164, 35));
+        sidebarPanel.add(lexerErrorButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 230, 180, 35));
 
         sintaxErrorButton1.setBackground(new java.awt.Color(153, 153, 0));
         sintaxErrorButton1.setText("Tabla de errores sintácticos");
@@ -158,7 +169,7 @@ public class MainWindow extends javax.swing.JFrame {
                 sintaxErrorButton1ActionPerformed(evt);
             }
         });
-        sidebarPanel.add(sintaxErrorButton1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 265, 164, 35));
+        sidebarPanel.add(sintaxErrorButton1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 265, 180, 35));
 
         semanticErrorButton1.setBackground(new java.awt.Color(153, 153, 0));
         semanticErrorButton1.setText("Tabla de errores semánticos");
@@ -170,7 +181,7 @@ public class MainWindow extends javax.swing.JFrame {
                 semanticErrorButton1ActionPerformed(evt);
             }
         });
-        sidebarPanel.add(semanticErrorButton1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 300, 164, 35));
+        sidebarPanel.add(semanticErrorButton1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 300, 180, 35));
 
         contentPane.setBackground(new java.awt.Color(153, 255, 51));
         contentPane.setLayout(new java.awt.BorderLayout());
@@ -185,10 +196,10 @@ public class MainWindow extends javax.swing.JFrame {
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addComponent(sidebarPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(2, 2, 2)
+                .addComponent(sidebarPanel, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(1, 1, 1)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(navTextLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 685, Short.MAX_VALUE)
+                    .addComponent(navTextLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 690, Short.MAX_VALUE)
                     .addComponent(contentPane, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
         );
         layout.setVerticalGroup(
@@ -224,19 +235,14 @@ public class MainWindow extends javax.swing.JFrame {
             try {
                 String contenido = new String(Files.readAllBytes(fileToOpen.toPath()), StandardCharsets.UTF_8);
 
-                // 1. Mostrar el panel del editor en la interfaz principal
+                // Mostrar el panel del editor en la interfaz principal
                 paintPanel(editorPanel);
 
-                // 2. Actualizar el texto de la ruta en la barra superior indicando el archivo abierto
+                // Actualizar el texto de la ruta en la barra superior indicando el archivo abierto
                 navText("Editor de código / " + fileToOpen.getName());
 
-                // 3. Enviar el contenido leído al JTextArea del EditorPanel
+                // Enviar el contenido leído al JTextArea del EditorPanel
                 editorPanel.setCodeText(contenido);
-
-                JOptionPane.showMessageDialog(this,
-                        "Archivo abierto con éxito: " + fileToOpen.getName(),
-                        "Éxito",
-                        JOptionPane.INFORMATION_MESSAGE);
 
             } catch (java.io.IOException e) {
                 JOptionPane.showMessageDialog(this,
@@ -248,16 +254,25 @@ public class MainWindow extends javax.swing.JFrame {
     }//GEN-LAST:event_openFileButtonActionPerformed
 
     private void astButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_astButtonActionPerformed
-        ParserTreePanel treePanel = new ParserTreePanel();
         String dotContent = compiler.getLastDotCode();
-        
+
         treePanel.renderGraph(dotContent);
         paintPanel(treePanel);
         navText("Árbol AST");
     }//GEN-LAST:event_astButtonActionPerformed
 
     private void symbolTableButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_symbolTableButtonActionPerformed
-        // TODO add your handling code here:
+        String code = editorPanel.getCodeText();
+        compiler.parseCode(code);
+        SymbolTable table = compiler.getSymbolTable();
+        List<Symbol> allSymbols = new ArrayList<>();
+
+        collectSymbolsRecursive(table.getCurrentScope(), allSymbols);
+
+        SymbolTablePanel panel = new SymbolTablePanel();
+        panel.loadSymbols(allSymbols);
+        paintPanel(panel);
+        navText("Tabla de símbolos");
     }//GEN-LAST:event_symbolTableButtonActionPerformed
 
     private void lexerErrorButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_lexerErrorButtonActionPerformed
@@ -292,6 +307,15 @@ public class MainWindow extends javax.swing.JFrame {
         paintPanel(panel);
         navText("Tabla de errores semánticos");
     }//GEN-LAST:event_semanticErrorButton1ActionPerformed
+
+    private void semanticErrorButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_semanticErrorButtonActionPerformed
+        String code = editorPanel.getCodeText();
+        List<codex_latinus.backend.stack.StackState> steps = compiler.getStackSteps(code);
+        stackVisualizerPanel.loadStates(steps);
+
+        paintPanel(stackVisualizerPanel);
+        navText("Pila de procesos");
+    }//GEN-LAST:event_semanticErrorButtonActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -341,5 +365,16 @@ public class MainWindow extends javax.swing.JFrame {
     private void initialPanel() {
         paintPanel(editorPanel);
         navText("Editor de código");
+    }
+
+    // Método auxiliar recursivo para buscar en los sub-ámbitos y padres
+    private void collectSymbolsRecursive(Scope scope, List<Symbol> list) {
+        if (scope == null) {
+            return;
+        }
+
+        if (scope.getSymbols() != null) {
+            list.addAll(scope.getSymbols().values());
+        }
     }
 }

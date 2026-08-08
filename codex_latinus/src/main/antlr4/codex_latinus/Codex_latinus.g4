@@ -14,12 +14,11 @@ miembro_structura: ESTO VARIABLE DOS_PUNTOS tipo_dato (COMA | PUNTO_COMA)?
 
 variables: VARIABILES MAYOR_QUE declaracion+;
 
-declaracion: ESTO VARIABLE DOS_PUNTOS NUMERUS NUMERO_ENTERO PUNTO_COMA
+declaracion: ESTO VARIABLE DOS_PUNTOS tipo_dato expresion PUNTO_COMA
            | ESTO VARIABLE DOS_PUNTOS TEXTUM CADENA_TEXTO PUNTO_COMA
-           | ESTO VARIABLE DOS_PUNTOS DECIMALIS NUMERO_DECIMAL PUNTO_COMA
            | ESTO VARIABLE DOS_PUNTOS LITTERA CARACTER PUNTO_COMA
-           | ESTO VARIABLE DOS_PUNTOS (VERUM | FALSUS) PUNTO_COMA
            | ESTO VARIABLE DOS_PUNTOS VARIABLE structura_instanciacion PUNTO_COMA
+           | ESTO VARIABLE DOS_PUNTOS expresion PUNTO_COMA
            | arreglo_declaracion;
 
 arreglo_declaracion: SERIES VARIABLE CORCHETE_IZQ NUMERO_ENTERO CORCHETE_DER DOS_PUNTOS tipo_dato (LLAVE_IZQ elemento_arreglo? LLAVE_DER)? PUNTO_COMA
@@ -38,17 +37,17 @@ arreglo_literal: LLAVE_IZQ elemento_arreglo? LLAVE_DER;
 
 munera: MUNERA MAYOR_QUE funcion+;
 
-funcion: RATIO tipo_dato VARIABLE PARENTESIS_IZQ parametros? PARENTESIS_DER LLAVE_IZQ
-        variables_locales?
-        reddere_sentencia
-        LLAVE_DER FINIS PUNTO_COMA;
+funcion: ratio_funcion
+       | actio_funcion;
+
+ratio_funcion: RATIO tipo_dato VARIABLE PARENTESIS_IZQ parametros? PARENTESIS_DER LLAVE_IZQ variables_locales? sentencia* reddere_sentencia LLAVE_DER FINIS PUNTO_COMA;
+
+actio_funcion: ACTIO VARIABLE PARENTESIS_IZQ parametros? PARENTESIS_DER LLAVE_IZQ variables_locales? sentencia* LLAVE_DER FINIS PUNTO_COMA;
 
 tipo_dato: NUMERUS
          | TEXTUM
          | DECIMALIS
-         | LITTERA
-         | VERUM
-         | FALSUS;
+         | LITTERA;
 
 parametros: parametro (COMA parametro)*;
 
@@ -58,7 +57,10 @@ parametro: ESTO VARIABLE DOS_PUNTOS tipo_dato
 variables_locales: VARIABILES CORCHETE_IZQ declaracion_local+ CORCHETE_DER;
 
 declaracion_local: ESTO VARIABLE DOS_PUNTOS tipo_dato expresion PUNTO_COMA
-                 | ESTO VARIABLE DOS_PUNTOS VARIABLE structura_instanciacion PUNTO_COMA;
+                 | ESTO VARIABLE DOS_PUNTOS TEXTUM CADENA_TEXTO PUNTO_COMA
+                 | ESTO VARIABLE DOS_PUNTOS LITTERA CARACTER PUNTO_COMA
+                 | ESTO VARIABLE DOS_PUNTOS VARIABLE structura_instanciacion PUNTO_COMA
+                 | ESTO VARIABLE DOS_PUNTOS expresion PUNTO_COMA;
 
 expresion: termino (operacion_aritmetica termino)*;
 
@@ -87,7 +89,8 @@ sentencia: imprimir_sentencia
          | ciclo_dum
          | ciclo_facere
          | ciclo_per
-         | salto_sentencia;
+         | salto_sentencia
+         | llamada_funcion PUNTO_COMA?;
 
 leer_sentencia: (VARIABLE | acceso_miembro) LEER;
 
@@ -95,7 +98,9 @@ asignacion_sentencia: (VARIABLE | acceso_miembro) ASIGNACION (expresion | struct
 
 imprimir_sentencia: IMPRIMIR (CADENA_TEXTO | VARIABLE | acceso_miembro | llamada_funcion) (IMPRIMIR (CADENA_TEXTO | VARIABLE | acceso_miembro | llamada_funcion))* PUNTO_COMA?;
 
-si_sentencia: SI PARENTESIS_IZQ condicion PARENTESIS_DER LLAVE_IZQ sentencia* LLAVE_DER FINIS PUNTO_COMA;
+si_sentencia: SI PARENTESIS_IZQ condicion PARENTESIS_DER LLAVE_IZQ sentencia* LLAVE_DER aliter_bloque* (ALITER LLAVE_IZQ sentencia* LLAVE_DER)? FINIS PUNTO_COMA;
+
+aliter_bloque: ALITER SI PARENTESIS_IZQ condicion PARENTESIS_DER LLAVE_IZQ sentencia* LLAVE_DER;
 
 ciclo_dum: DUM PARENTESIS_IZQ condicion PARENTESIS_DER LLAVE_IZQ sentencia* LLAVE_DER FINIS PUNTO_COMA;
 
@@ -115,7 +120,25 @@ incremento_per: VARIABLE SUMA_ABREVIADA
 salto_sentencia: PERGE PUNTO_COMA
                | INTERRUMPE PUNTO_COMA;
 
-condicion: expresion operador_relacional expresion;
+condicion
+    : condicion OR conjuncion
+    | conjuncion;
+
+conjuncion
+    : conjuncion AND negacion_logica
+    | negacion_logica;
+
+negacion_logica
+    : NEGACION negacion_logica
+    | primaria_logica;
+
+primaria_logica
+    : PARENTESIS_IZQ condicion PARENTESIS_DER
+    | expresion operador_relacional expresion
+    | VERUM
+    | FALSUS
+    | VARIABLE
+    | llamada_funcion;
 
 operador_relacional: MAYOR_IGUAL | MENOR_IGUAL | IGUAL | NO_IGUAL | MENOR_QUE | MAYOR_QUE;
 

@@ -1,7 +1,15 @@
 codex_latinus/frontend/MainWindow$5.class
+codex_latinus/frontend/StackVisualizerPanel.class
+codex_latinus/frontend/StackVisualizerPanel$1.class
 codex_latinus/frontend/ParserTreePanel$1.class
+codex_latinus/frontend/SymbolTablePanel.class
 codex_latinus/frontend/MainWindow$4.class
+codex_latinus/frontend/SymbolTablePanel$1.class
 codex_latinus/frontend/ErrorTablePanel$1.class
+codex_latinus/frontend/MainWindow$8.class
+codex_latinus/backend/stack/StackVisualizerListener.class
 codex_latinus/frontend/MainWindow$7.class
+codex_latinus/backend/stack/StackState.class
+codex_latinus/frontend/ParserTreePanel$ZoomableImagePanel.class
 codex_latinus/frontend/ErrorTablePanel.class
 codex_latinus/frontend/MainWindow$6.class

@@ -185,6 +185,30 @@ public class Codex_latinusBaseListener implements Codex_latinusListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterRatio_funcion(Codex_latinusParser.Ratio_funcionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitRatio_funcion(Codex_latinusParser.Ratio_funcionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterActio_funcion(Codex_latinusParser.Actio_funcionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitActio_funcion(Codex_latinusParser.Actio_funcionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterTipo_dato(Codex_latinusParser.Tipo_datoContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -389,6 +413,18 @@ public class Codex_latinusBaseListener implements Codex_latinusListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterAliter_bloque(Codex_latinusParser.Aliter_bloqueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitAliter_bloque(Codex_latinusParser.Aliter_bloqueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterCiclo_dum(Codex_latinusParser.Ciclo_dumContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -480,6 +516,42 @@ public class Codex_latinusBaseListener implements Codex_latinusListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitCondicion(Codex_latinusParser.CondicionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterConjuncion(Codex_latinusParser.ConjuncionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitConjuncion(Codex_latinusParser.ConjuncionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterNegacion_logica(Codex_latinusParser.Negacion_logicaContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitNegacion_logica(Codex_latinusParser.Negacion_logicaContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterPrimaria_logica(Codex_latinusParser.Primaria_logicaContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitPrimaria_logica(Codex_latinusParser.Primaria_logicaContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

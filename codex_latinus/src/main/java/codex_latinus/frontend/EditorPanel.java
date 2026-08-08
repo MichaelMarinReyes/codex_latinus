@@ -67,6 +67,11 @@ public class EditorPanel extends javax.swing.JPanel {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     // End of variables declaration//GEN-END:variables
+    
+    public String getCodeText() {
+        return codeTextArea.getText();
+    }
+
     /**
      * Método para establecer el texto del código fuente en el editor.
      */

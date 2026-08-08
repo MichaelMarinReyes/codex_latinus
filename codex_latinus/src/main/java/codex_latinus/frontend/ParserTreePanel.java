@@ -1,7 +1,11 @@
 package codex_latinus.frontend;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.RenderingHints;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
@@ -10,6 +14,7 @@ import java.io.IOException;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.SwingConstants;
 
@@ -19,10 +24,11 @@ import javax.swing.SwingConstants;
  */
 public class ParserTreePanel extends javax.swing.JPanel {
 
-    private JLabel imageLabel;
+    private ZoomableImagePanel imagePanel;
     private JScrollPane scrollPane;
-    private ImageIcon originalIcon = null;
+    private Image originalImage = null;
     private double zoomFactor = 1.0;
+    private JLabel messageLabel;
 
     /**
      * Creates new form ParserTree
@@ -60,34 +66,43 @@ public class ParserTreePanel extends javax.swing.JPanel {
     private void initCustomComponents() {
         this.setLayout(new BorderLayout());
 
-        imageLabel = new JLabel("No hay árbol AST generado aún.", SwingConstants.CENTER);
-        imageLabel.setVerticalAlignment(SwingConstants.CENTER);
+        messageLabel = new JLabel("No hay árbol AST generado aún.", SwingConstants.CENTER);
 
-        scrollPane = new JScrollPane(imageLabel);
+        // Panel personalizado que escala instantáneamente mediante Graphics2D
+        imagePanel = new ZoomableImagePanel();
+        imagePanel.setLayout(new BorderLayout());
+        imagePanel.add(messageLabel, BorderLayout.CENTER);
+
+        scrollPane = new JScrollPane(imagePanel);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 
-        // Listener para el Zoom con la rueda del mouse (Ctrl + Scroll)
+        // Listener optimizado para el Zoom (Ctrl + Scroll)
         scrollPane.addMouseWheelListener(new MouseWheelListener() {
             @Override
             public void mouseWheelMoved(MouseWheelEvent e) {
-                if (originalIcon == null) {
+                if (originalImage == null) {
                     return;
                 }
-
 
                 if (e.isControlDown()) {
                     e.consume();
 
+                    double oldFactor = zoomFactor;
                     if (e.getPreciseWheelRotation() < 0) {
-                        zoomFactor *= 1.1;
+                        zoomFactor *= 1.1; // Acercar
                     } else {
-                        zoomFactor /= 1.1;
+                        zoomFactor /= 1.1; // Alejar
                     }
 
+                    // Limitar zoom entre 10% y 500%
                     zoomFactor = Math.max(0.1, Math.min(5.0, zoomFactor));
 
-                    actualizarImagenZoom();
+                    // Solo repintar si el zoom cambió realmente
+                    if (oldFactor != zoomFactor) {
+                        imagePanel.revalidate();
+                        imagePanel.repaint();
+                    }
                 }
             }
         });
@@ -96,24 +111,32 @@ public class ParserTreePanel extends javax.swing.JPanel {
     }
 
     /**
-     * Actualiza el tamaño de la imagen en base al factor de zoom actual.
+     * Panel interno encargado de renderizar la imagen con escala vectorial
+     * fluida.
      */
-    private void actualizarImagenZoom() {
-        if (originalIcon == null) {
-            return;
+    private class ZoomableImagePanel extends JPanel {
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            if (originalImage != null) {
+                Graphics2D g2d = (Graphics2D) g.create();
+                g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                g2d.scale(zoomFactor, zoomFactor);
+                g2d.drawImage(originalImage, 0, 0, this);
+                g2d.dispose();
+            }
         }
 
-        int nuevoAncho = (int) (originalIcon.getIconWidth() * zoomFactor);
-        int nuevoAlto = (int) (originalIcon.getIconHeight() * zoomFactor);
-
-        if (nuevoAncho <= 0 || nuevoAlto <= 0) {
-            return;
+        @Override
+        public Dimension getPreferredSize() {
+            if (originalImage == null) {
+                return super.getPreferredSize();
+            }
+            int width = (int) (originalImage.getWidth(null) * zoomFactor);
+            int height = (int) (originalImage.getHeight(null) * zoomFactor);
+            return new Dimension(width, height);
         }
-
-        Image imgEscalada = originalIcon.getImage().getScaledInstance(nuevoAncho, nuevoAlto, Image.SCALE_SMOOTH);
-        imageLabel.setIcon(new ImageIcon(imgEscalada));
-        imageLabel.revalidate();
-        imageLabel.repaint();
     }
 
     /**
@@ -124,9 +147,12 @@ public class ParserTreePanel extends javax.swing.JPanel {
      */
     public void renderGraph(String dotCode) {
         if (dotCode == null || dotCode.trim().isEmpty()) {
-            originalIcon = null;
-            imageLabel.setIcon(null);
-            imageLabel.setText("El código DOT está vacío.");
+            originalImage = null;
+            zoomFactor = 1.0;
+            messageLabel.setText("No se generó el árbol debido a errores.\nVerifique las tablas de errores para más detalles.");
+            messageLabel.setVisible(true);
+            imagePanel.revalidate();
+            imagePanel.repaint();
             return;
         }
 
@@ -144,14 +170,19 @@ public class ParserTreePanel extends javax.swing.JPanel {
             int exitCode = process.waitFor();
 
             if (exitCode == 0) {
-                originalIcon = new ImageIcon(tempImg.getAbsolutePath());
+                ImageIcon icon = new ImageIcon(tempImg.getAbsolutePath());
+                originalImage = icon.getImage();
                 zoomFactor = 1.0; // Resetear zoom al generar un nuevo árbol
-                imageLabel.setIcon(originalIcon);
-                imageLabel.setText("");
+                messageLabel.setVisible(false);
+                imagePanel.revalidate();
+                imagePanel.repaint();
             } else {
-                originalIcon = null;
-                imageLabel.setIcon(null);
-                imageLabel.setText("Error al compilar Graphviz (Asegúrate de tenerlo instalado).");
+                originalImage = null;
+                zoomFactor = 1.0;
+                messageLabel.setText("Error al compilar Graphviz (Asegúrate de tenerlo instalado).");
+                messageLabel.setVisible(true);
+                imagePanel.revalidate();
+                imagePanel.repaint();
                 JOptionPane.showMessageDialog(this,
                         "Graphviz devolvió un código de salida no exitoso. ¿Está instalado 'dot' en tu PATH?",
                         "Error de Graphviz",
@@ -161,9 +192,12 @@ public class ParserTreePanel extends javax.swing.JPanel {
             tempDot.delete();
 
         } catch (IOException | InterruptedException e) {
-            originalIcon = null;
-            imageLabel.setIcon(null);
-            imageLabel.setText("Excepción al generar la imagen del AST.");
+            originalImage = null;
+            zoomFactor = 1.0;
+            messageLabel.setText("Excepción al generar la imagen del AST.");
+            messageLabel.setVisible(true);
+            imagePanel.revalidate();
+            imagePanel.repaint();
             JOptionPane.showMessageDialog(this,
                     "Error al procesar Graphviz: " + e.getMessage() + "\nVerifica que Graphviz esté instalado en el sistema.",
                     "Error",

@@ -148,6 +148,26 @@ public interface Codex_latinusListener extends ParseTreeListener {
 	 */
 	void exitFuncion(Codex_latinusParser.FuncionContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link Codex_latinusParser#ratio_funcion}.
+	 * @param ctx the parse tree
+	 */
+	void enterRatio_funcion(Codex_latinusParser.Ratio_funcionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link Codex_latinusParser#ratio_funcion}.
+	 * @param ctx the parse tree
+	 */
+	void exitRatio_funcion(Codex_latinusParser.Ratio_funcionContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link Codex_latinusParser#actio_funcion}.
+	 * @param ctx the parse tree
+	 */
+	void enterActio_funcion(Codex_latinusParser.Actio_funcionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link Codex_latinusParser#actio_funcion}.
+	 * @param ctx the parse tree
+	 */
+	void exitActio_funcion(Codex_latinusParser.Actio_funcionContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link Codex_latinusParser#tipo_dato}.
 	 * @param ctx the parse tree
 	 */
@@ -318,6 +338,16 @@ public interface Codex_latinusListener extends ParseTreeListener {
 	 */
 	void exitSi_sentencia(Codex_latinusParser.Si_sentenciaContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link Codex_latinusParser#aliter_bloque}.
+	 * @param ctx the parse tree
+	 */
+	void enterAliter_bloque(Codex_latinusParser.Aliter_bloqueContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link Codex_latinusParser#aliter_bloque}.
+	 * @param ctx the parse tree
+	 */
+	void exitAliter_bloque(Codex_latinusParser.Aliter_bloqueContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link Codex_latinusParser#ciclo_dum}.
 	 * @param ctx the parse tree
 	 */
@@ -397,6 +427,36 @@ public interface Codex_latinusListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitCondicion(Codex_latinusParser.CondicionContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link Codex_latinusParser#conjuncion}.
+	 * @param ctx the parse tree
+	 */
+	void enterConjuncion(Codex_latinusParser.ConjuncionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link Codex_latinusParser#conjuncion}.
+	 * @param ctx the parse tree
+	 */
+	void exitConjuncion(Codex_latinusParser.ConjuncionContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link Codex_latinusParser#negacion_logica}.
+	 * @param ctx the parse tree
+	 */
+	void enterNegacion_logica(Codex_latinusParser.Negacion_logicaContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link Codex_latinusParser#negacion_logica}.
+	 * @param ctx the parse tree
+	 */
+	void exitNegacion_logica(Codex_latinusParser.Negacion_logicaContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link Codex_latinusParser#primaria_logica}.
+	 * @param ctx the parse tree
+	 */
+	void enterPrimaria_logica(Codex_latinusParser.Primaria_logicaContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link Codex_latinusParser#primaria_logica}.
+	 * @param ctx the parse tree
+	 */
+	void exitPrimaria_logica(Codex_latinusParser.Primaria_logicaContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link Codex_latinusParser#operador_relacional}.
 	 * @param ctx the parse tree
