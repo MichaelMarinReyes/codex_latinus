@@ -28,7 +28,7 @@ elemento_arreglo: expresion (COMA expresion)*;
 
 elemento_arreglo_struct: structura_instanciacion (COMA structura_instanciacion)*;
 
-structura_instanciacion: VARIABLE LLAVE_IZQ atributo_asignacion (COMA atributo_asignacion)* LLAVE_DER
+structura_instanciacion: (VARIABLE)? LLAVE_IZQ atributo_asignacion (COMA atributo_asignacion)* LLAVE_DER
                         | VARIABLE CORCHETE_IZQ NUMERO_ENTERO CORCHETE_DER;
 
 atributo_asignacion: VARIABLE DOS_PUNTOS (expresion | structura_instanciacion | arreglo_literal);
@@ -68,6 +68,8 @@ termino: VARIABLE
        | acceso_miembro
        | NUMERO_ENTERO
        | NUMERO_DECIMAL
+       | CADENA_TEXTO
+       | CARACTER
        | VERUM
        | FALSUS
        | llamada_funcion;
@@ -92,7 +94,7 @@ sentencia: imprimir_sentencia
          | salto_sentencia
          | llamada_funcion PUNTO_COMA?;
 
-leer_sentencia: (VARIABLE | acceso_miembro) LEER;
+leer_sentencia: (VARIABLE | acceso_miembro)? LEER;
 
 asignacion_sentencia: (VARIABLE | acceso_miembro) ASIGNACION (expresion | structura_instanciacion | arreglo_literal) PUNTO_COMA?;
 

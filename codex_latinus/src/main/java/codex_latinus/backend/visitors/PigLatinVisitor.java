@@ -207,11 +207,55 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
 
     @Override
     public String visitAsignacion_sentencia(Codex_latinusParser.Asignacion_sentenciaContext ctx) {
+        String varName = "";
+        if (ctx.VARIABLE() != null) {
+            varName = ctx.VARIABLE().getText();
+        } else if (ctx.acceso_miembro() != null && ctx.acceso_miembro().VARIABLE(0) != null) {
+            varName = ctx.acceso_miembro().VARIABLE(0).getText();
+        }
+
+        Symbol sym = symbolTable.resolve(varName);
+        if (sym == null) {
+            semanticErrors.add(new CompilationError("Semántico", "La variable '" + varName + "' no ha sido declarada.",
+                    ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine()));
+            return "";
+        }
+
+        if (ctx.expresion() != null) {
+            String tipoVariable = sym.getType();
+            String tipoValor = getTipoExpresion(ctx.expresion());
+
+            if (!tipoVariable.equalsIgnoreCase(tipoValor) && !tipoValor.equals("desconocido")) {
+                semanticErrors.add(new CompilationError("Semántico",
+                        "Error de tipo: No se puede asignar '" + tipoValor + "' a una variable de tipo '" + tipoVariable + "'.",
+                        ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine()));
+            }
+        }
+
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < ctx.getChildCount(); i++) {
             sb.append(visitGenericElement(ctx.getChild(i))).append(" ");
         }
         return sb.toString().trim();
+    }
+
+    private String getTipoExpresion(Codex_latinusParser.ExpresionContext ctx) {
+        if (ctx.termino() != null && !ctx.termino().isEmpty()) {
+            Codex_latinusParser.TerminoContext termino = ctx.termino(0);
+
+            if (termino.VARIABLE() != null) {
+                Symbol s = symbolTable.resolve(termino.VARIABLE().getText());
+                return (s != null) ? s.getType() : "desconocido";
+            }
+            if (termino.NUMERO_ENTERO() != null) return "numerus";
+            if (termino.NUMERO_DECIMAL() != null) return "decimalis";
+            if (termino.VERUM() != null || termino.FALSUS() != null) return "verum";
+            if (termino.llamada_funcion() != null) {
+                Symbol s = symbolTable.resolve(termino.llamada_funcion().VARIABLE().getText());
+                return (s != null) ? s.getType() : "desconocido";
+            }
+        }
+        return "desconocido";
     }
 
     @Override
