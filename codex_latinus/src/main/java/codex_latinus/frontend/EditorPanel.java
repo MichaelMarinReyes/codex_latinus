@@ -9,6 +9,8 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.ActionEvent;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -16,11 +18,15 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTextArea;
+import javax.swing.JTextPane;
 import javax.swing.event.CaretEvent;
 import javax.swing.event.CaretListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.text.BadLocationException;
+import javax.swing.text.Style;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyleContext;
+import javax.swing.text.StyledDocument;
 
 /**
  *
@@ -28,13 +34,19 @@ import javax.swing.text.BadLocationException;
  */
 public class EditorPanel extends javax.swing.JPanel {
 
-    private JTextArea codeTextArea;
+    private JTextPane codeTextArea;
     private JTextArea consoleTextArea;
     private JLabel statusLabel;
     private JButton compileButton;
     private LineNumberComponent lineNumberComponent;
     private Compiler compiler = new Compiler();
     private String result = "";
+    private boolean isUpdatingHighlight = false;
+    private Color colorSecciones;
+    private Color colorKeywords;
+    private Color colorTipos;
+    private Color colorCadenas;
+    private Color colorComentarios;
 
     /**
      * Creates new form EditorPanel
@@ -79,25 +91,25 @@ public class EditorPanel extends javax.swing.JPanel {
     public void setCodeText(String text) {
         codeTextArea.setText(text);
     }
-    
+
     public String getResult() {
         return result;
     }
 
     /**
      * Inicializa los componentes del editor de código, consola, números de
-     * línea, botón compilar y barra de estado, configurando el fondo en tono
-     * gris.
+     * línea, botón compilar y barra de estado.
      */
     private void initCustomEditor() {
         this.setLayout(new BorderLayout());
 
+        inicializarColores();
+
         Color backgroundGray = new Color(240, 240, 240);
         this.setBackground(backgroundGray);
 
-        codeTextArea = new JTextArea();
+        codeTextArea = new JTextPane();
         codeTextArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
-        codeTextArea.setTabSize(4);
         codeTextArea.setBackground(new Color(255, 255, 255));
 
         lineNumberComponent = new LineNumberComponent(codeTextArea);
@@ -140,14 +152,32 @@ public class EditorPanel extends javax.swing.JPanel {
         statusPanel.add(statusLabel, BorderLayout.EAST);
 
         JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, codeScrollPane, consoleScrollPane);
-        splitPane.setResizeWeight(0.75); // 75% para el editor, 25% para la consola por defecto
+        splitPane.setResizeWeight(0.75);
         splitPane.setDividerLocation(350);
         splitPane.setBackground(backgroundGray);
 
         this.add(splitPane, BorderLayout.CENTER);
         this.add(statusPanel, BorderLayout.SOUTH);
 
-        // Listener para actualizar dinámicamente la línea y columna según la posición del cursor
+        // Listener para actualizar el coloreado dinámicamente
+        codeTextArea.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                triggerHighlight();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                triggerHighlight();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                triggerHighlight();
+            }
+        });
+
+        // Listener para actualizar línea y columna
         codeTextArea.addCaretListener(new CaretListener() {
             @Override
             public void caretUpdate(CaretEvent e) {
@@ -155,10 +185,18 @@ public class EditorPanel extends javax.swing.JPanel {
                 int columnNumber = 1;
                 try {
                     int caretPos = codeTextArea.getCaretPosition();
-                    lineNumber = codeTextArea.getLineOfOffset(caretPos);
-                    columnNumber = caretPos - codeTextArea.getLineStartOffset(lineNumber) + 1;
-                    lineNumber += 1;
-                } catch (BadLocationException ex) {
+                    String text = codeTextArea.getText();
+                    if (caretPos <= text.length()) {
+                        for (int i = 0; i < caretPos; i++) {
+                            if (text.charAt(i) == '\n') {
+                                lineNumber++;
+                                columnNumber = 1;
+                            } else {
+                                columnNumber++;
+                            }
+                        }
+                    }
+                } catch (Exception ex) {
                     // Manejo de errores
                 }
                 statusLabel.setText("Línea: " + lineNumber + " | Columna: " + columnNumber);
@@ -167,8 +205,60 @@ public class EditorPanel extends javax.swing.JPanel {
     }
 
     /**
-     * Acción que se ejecuta al presionar el botón compilar.
+     * Método privado para inicializar los colores del editor.
      */
+    private void inicializarColores() {
+        colorSecciones = new Color(128, 0, 128); // Morado para secciones (VARIABILES>, etc.)
+        colorKeywords = new Color(0, 0, 255); // Azul para palabras clave (si, ratio, actio, etc.)
+        colorTipos = new Color(0, 128, 128); // Cian oscuro para tipos (numerus, textum, etc.)
+        colorCadenas = new Color(0, 128, 0); // Verde para cadenas de texto
+        colorComentarios = new Color(128, 128, 128); // Gris para comentarios
+    }
+
+    private void triggerHighlight() {
+        if (isUpdatingHighlight) {
+            return;
+        }
+        isUpdatingHighlight = true;
+
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            applySyntaxHighlighting();
+            isUpdatingHighlight = false;
+        });
+    }
+
+    /**
+     * Método encargado de analizar el texto y aplicar los colores configurados.
+     */
+    private void applySyntaxHighlighting() {
+        StyledDocument doc = codeTextArea.getStyledDocument();
+        String text = codeTextArea.getText();
+
+        Style defaultStyle = StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE);
+        StyleConstants.setForeground(defaultStyle, Color.BLACK);
+        doc.setCharacterAttributes(0, text.length(), defaultStyle, true);
+
+        coloringRegex(doc, text, "\\b(VARIABILES>|MUNERA>|MAIOR>)\\b", colorSecciones, true);
+        coloringRegex(doc, text, "\\b(structura|ratio|actio|si|sino|dum|facere|per|reddere|finis|perge|interrumpe|verum|falsus)\\b", colorKeywords, true);
+        coloringRegex(doc, text, "\\b(numerus|textum|decimalis|littera)\\b", colorTipos, false);
+        coloringRegex(doc, text, "\"[^\"]*\"", colorCadenas, false);
+        coloringRegex(doc, text, "//.*", colorComentarios, false);
+        coloringRegex(doc, text, "##[\\s\\S]*?##", colorComentarios, false);
+    }
+
+    private void coloringRegex(StyledDocument doc, String text, String regex, Color color, boolean bold) {
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(text);
+
+        Style style = doc.addStyle("Style_" + regex.hashCode(), null);
+        StyleConstants.setForeground(style, color);
+        StyleConstants.setBold(style, bold);
+
+        while (matcher.find()) {
+            doc.setCharacterAttributes(matcher.start(), matcher.end() - matcher.start(), style, false);
+        }
+    }
+
     private void compileButtonActionPerformed(ActionEvent evt) {
         consoleTextArea.setText("");
         String codigoFuente = codeTextArea.getText();
@@ -189,15 +279,11 @@ public class EditorPanel extends javax.swing.JPanel {
         }
     }
 
-    /**
-     * Componente interno para renderizar los números de línea al costado del
-     * JTextArea.
-     */
     private class LineNumberComponent extends JPanel {
 
-        private final JTextArea textArea;
+        private final JTextPane textArea;
 
-        public LineNumberComponent(JTextArea textArea) {
+        public LineNumberComponent(JTextPane textArea) {
             this.textArea = textArea;
             setBackground(new Color(230, 230, 230));
             setForeground(new Color(120, 120, 120));
@@ -224,42 +310,31 @@ public class EditorPanel extends javax.swing.JPanel {
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
             g.setFont(textArea.getFont());
-            Font metrics = textArea.getFont();
-            java.awt.FontMetrics fm = g.getFontMetrics(metrics);
-
-            int startOffset = textArea.viewToModel2D(new java.awt.Point(0, 0));
-            int endOffset = textArea.viewToModel2D(new java.awt.Point(textArea.getWidth(), textArea.getHeight()));
+            java.awt.FontMetrics fm = g.getFontMetrics();
 
             try {
-                int startLine = textArea.getLineOfOffset(startOffset);
-                int endLine = textArea.getLineOfOffset(endOffset);
+                int height = fm.getHeight();
+                int lines = textArea.getDocument().getDefaultRootElement().getElementCount();
 
-                for (int i = startLine; i <= endLine; i++) {
+                int y = fm.getAscent();
+                for (int i = 0; i < lines; i++) {
                     String lineNumStr = String.valueOf(i + 1);
-                    int y = textArea.modelToView2D(textArea.getLineStartOffset(i)).getBounds().y + fm.getAscent();
-
                     g.drawString(lineNumStr, getWidth() - fm.stringWidth(lineNumStr) - 10, y);
+                    y += height;
                 }
             } catch (Exception e) {
-                // Manejo de excepciones por renderizado en tiempo real
+                // Manejo de excepciones
             }
 
             setPreferredSize(new Dimension(45, textArea.getHeight()));
         }
     }
 
-    /**
-     * Método auxiliar para escribir mensajes o errores en la consola de
-     * resultados.
-     */
     public void printToConsole(String text) {
         consoleTextArea.setForeground(Color.GREEN);
         consoleTextArea.append(text + "\n");
     }
 
-    /**
-     * Método auxiliar para limpiar la consola.
-     */
     public void clearConsole() {
         consoleTextArea.setText("");
     }

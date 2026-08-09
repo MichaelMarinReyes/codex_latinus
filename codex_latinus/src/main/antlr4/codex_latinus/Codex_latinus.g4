@@ -3,7 +3,7 @@ grammar Codex_latinus;
 // GRAMÁTICA
 init: codex_latinus;
 
-codex_latinus: structura_def* variables* munera* maior;
+codex_latinus: (structura_def | variables | munera)* maior;
 
 structura_def: STRUCTURA VARIABLE LLAVE_IZQ miembro_structura* LLAVE_DER FINIS PUNTO_COMA;
 
@@ -14,11 +14,11 @@ miembro_structura: ESTO VARIABLE DOS_PUNTOS tipo_dato (COMA | PUNTO_COMA)?
 
 variables: VARIABILES MAYOR_QUE declaracion+;
 
-declaracion: ESTO VARIABLE DOS_PUNTOS tipo_dato expresion PUNTO_COMA
-           | ESTO VARIABLE DOS_PUNTOS TEXTUM CADENA_TEXTO PUNTO_COMA
-           | ESTO VARIABLE DOS_PUNTOS LITTERA CARACTER PUNTO_COMA
-           | ESTO VARIABLE DOS_PUNTOS VARIABLE structura_instanciacion PUNTO_COMA
-           | ESTO VARIABLE DOS_PUNTOS expresion PUNTO_COMA
+declaracion: ESTO VARIABLE DOS_PUNTOS? tipo_dato expresion PUNTO_COMA
+           | ESTO VARIABLE DOS_PUNTOS? TEXTUM CADENA_TEXTO PUNTO_COMA
+           | ESTO VARIABLE DOS_PUNTOS? LITTERA CARACTER PUNTO_COMA
+           | ESTO VARIABLE DOS_PUNTOS? VARIABLE structura_instanciacion PUNTO_COMA
+           | ESTO VARIABLE DOS_PUNTOS? expresion PUNTO_COMA
            | arreglo_declaracion;
 
 arreglo_declaracion: SERIES VARIABLE CORCHETE_IZQ NUMERO_ENTERO CORCHETE_DER DOS_PUNTOS tipo_dato (LLAVE_IZQ elemento_arreglo? LLAVE_DER)? PUNTO_COMA
@@ -51,8 +51,8 @@ tipo_dato: NUMERUS
 
 parametros: parametro (COMA parametro)*;
 
-parametro: ESTO VARIABLE DOS_PUNTOS tipo_dato
-         | ESTO VARIABLE DOS_PUNTOS VARIABLE;
+parametro: ESTO VARIABLE DOS_PUNTOS? tipo_dato
+         | ESTO VARIABLE DOS_PUNTOS? VARIABLE;
 
 variables_locales: VARIABILES CORCHETE_IZQ declaracion_local+ CORCHETE_DER;
 
@@ -80,7 +80,7 @@ arreglo_acceso: VARIABLE CORCHETE_IZQ expresion CORCHETE_DER (PUNTO VARIABLE)*;
 
 operacion_aritmetica: MAS | MENOS | MULTIPLICACION | DIVISION;
 
-reddere_sentencia: REDDERE VARIABLE PUNTO_COMA;
+reddere_sentencia: REDDERE expresion PUNTO_COMA;
 
 maior: MAIOR MAYOR_QUE sentencia* FINIS PUNTO_COMA;
 
@@ -92,7 +92,8 @@ sentencia: imprimir_sentencia
          | ciclo_facere
          | ciclo_per
          | salto_sentencia
-         | llamada_funcion PUNTO_COMA?;
+         | llamada_funcion PUNTO_COMA?
+         | VARIABLE (SUMA_ABREVIADA | RESTA_ABREVIADA) PUNTO_COMA;
 
 leer_sentencia: (VARIABLE | acceso_miembro)? LEER;
 
