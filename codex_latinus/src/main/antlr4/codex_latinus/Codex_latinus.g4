@@ -7,12 +7,12 @@ codex_latinus: (structura_def | variables | munera)* maior;
 
 structura_def: STRUCTURA VARIABLE LLAVE_IZQ miembro_structura* LLAVE_DER FINIS PUNTO_COMA;
 
-miembro_structura: ESTO VARIABLE DOS_PUNTOS tipo_dato (COMA | PUNTO_COMA)?
-                 | SERIES VARIABLE DOS_PUNTOS tipo_dato (COMA | PUNTO_COMA)?
-                 | ESTO VARIABLE DOS_PUNTOS VARIABLE (COMA | PUNTO_COMA)?
-                 | SERIES VARIABLE DOS_PUNTOS VARIABLE (COMA | PUNTO_COMA)?;
+miembro_structura: ESTO VARIABLE DOS_PUNTOS? tipo_dato (COMA | PUNTO_COMA)?
+                 | SERIES VARIABLE DOS_PUNTOS? tipo_dato (COMA | PUNTO_COMA)?
+                 | ESTO VARIABLE DOS_PUNTOS? VARIABLE (COMA | PUNTO_COMA)?
+                 | SERIES VARIABLE DOS_PUNTOS? VARIABLE (COMA | PUNTO_COMA)?;
 
-variables: VARIABILES MAYOR_QUE declaracion+;
+variables: VARIABILES MAYOR_QUE (declaracion | arreglo_declaracion | structura_def)+;
 
 declaracion: ESTO VARIABLE DOS_PUNTOS? tipo_dato expresion PUNTO_COMA
            | ESTO VARIABLE DOS_PUNTOS? TEXTUM CADENA_TEXTO PUNTO_COMA
@@ -21,8 +21,8 @@ declaracion: ESTO VARIABLE DOS_PUNTOS? tipo_dato expresion PUNTO_COMA
            | ESTO VARIABLE DOS_PUNTOS? expresion PUNTO_COMA
            | arreglo_declaracion;
 
-arreglo_declaracion: SERIES VARIABLE CORCHETE_IZQ NUMERO_ENTERO CORCHETE_DER DOS_PUNTOS tipo_dato (LLAVE_IZQ elemento_arreglo? LLAVE_DER)? PUNTO_COMA
-                   | SERIES VARIABLE CORCHETE_IZQ NUMERO_ENTERO CORCHETE_DER DOS_PUNTOS VARIABLE (LLAVE_IZQ elemento_arreglo_struct? LLAVE_DER)? PUNTO_COMA;
+arreglo_declaracion: SERIES VARIABLE CORCHETE_IZQ NUMERO_ENTERO CORCHETE_DER DOS_PUNTOS? tipo_dato (LLAVE_IZQ elemento_arreglo? LLAVE_DER)? PUNTO_COMA
+                   | SERIES VARIABLE CORCHETE_IZQ NUMERO_ENTERO CORCHETE_DER DOS_PUNTOS? VARIABLE (LLAVE_IZQ elemento_arreglo_struct? LLAVE_DER)? PUNTO_COMA;
 
 elemento_arreglo: expresion (COMA expresion)*;
 
@@ -31,7 +31,7 @@ elemento_arreglo_struct: structura_instanciacion (COMA structura_instanciacion)*
 structura_instanciacion: (VARIABLE)? LLAVE_IZQ atributo_asignacion (COMA atributo_asignacion)* LLAVE_DER
                         | VARIABLE CORCHETE_IZQ NUMERO_ENTERO CORCHETE_DER;
 
-atributo_asignacion: VARIABLE DOS_PUNTOS (expresion | structura_instanciacion | arreglo_literal);
+atributo_asignacion: VARIABLE DOS_PUNTOS? (expresion | structura_instanciacion | arreglo_literal);
 
 arreglo_literal: LLAVE_IZQ elemento_arreglo? LLAVE_DER;
 
@@ -47,7 +47,9 @@ actio_funcion: ACTIO VARIABLE PARENTESIS_IZQ parametros? PARENTESIS_DER LLAVE_IZ
 tipo_dato: NUMERUS
          | TEXTUM
          | DECIMALIS
-         | LITTERA;
+         | LITTERA
+         | VERUM
+         | FALSUS;
 
 parametros: parametro (COMA parametro)*;
 
@@ -56,11 +58,11 @@ parametro: ESTO VARIABLE DOS_PUNTOS? tipo_dato
 
 variables_locales: VARIABILES CORCHETE_IZQ declaracion_local+ CORCHETE_DER;
 
-declaracion_local: ESTO VARIABLE DOS_PUNTOS tipo_dato expresion PUNTO_COMA
-                 | ESTO VARIABLE DOS_PUNTOS TEXTUM CADENA_TEXTO PUNTO_COMA
-                 | ESTO VARIABLE DOS_PUNTOS LITTERA CARACTER PUNTO_COMA
-                 | ESTO VARIABLE DOS_PUNTOS VARIABLE structura_instanciacion PUNTO_COMA
-                 | ESTO VARIABLE DOS_PUNTOS expresion PUNTO_COMA;
+declaracion_local: ESTO VARIABLE DOS_PUNTOS? tipo_dato expresion PUNTO_COMA
+                 | ESTO VARIABLE DOS_PUNTOS? TEXTUM CADENA_TEXTO PUNTO_COMA
+                 | ESTO VARIABLE DOS_PUNTOS? LITTERA CARACTER PUNTO_COMA
+                 | ESTO VARIABLE DOS_PUNTOS? VARIABLE structura_instanciacion PUNTO_COMA
+                 | ESTO VARIABLE DOS_PUNTOS? expresion PUNTO_COMA;
 
 expresion: termino (operacion_aritmetica termino)*;
 
@@ -93,15 +95,15 @@ sentencia: imprimir_sentencia
          | ciclo_per
          | salto_sentencia
          | llamada_funcion PUNTO_COMA?
-         | VARIABLE (SUMA_ABREVIADA | RESTA_ABREVIADA) PUNTO_COMA;
+         | (VARIABLE | acceso_miembro) (SUMA_ABREVIADA | RESTA_ABREVIADA) PUNTO_COMA;
 
 leer_sentencia: (VARIABLE | acceso_miembro)? LEER;
 
-asignacion_sentencia: (VARIABLE | acceso_miembro) ASIGNACION (expresion | structura_instanciacion | arreglo_literal) PUNTO_COMA?;
+asignacion_sentencia: (VARIABLE | acceso_miembro) ASIGNACION (expresion | condicion | structura_instanciacion | arreglo_literal) PUNTO_COMA?;
 
 imprimir_sentencia: IMPRIMIR (CADENA_TEXTO | VARIABLE | acceso_miembro | llamada_funcion) (IMPRIMIR (CADENA_TEXTO | VARIABLE | acceso_miembro | llamada_funcion))* PUNTO_COMA?;
 
-si_sentencia: SI PARENTESIS_IZQ condicion PARENTESIS_DER LLAVE_IZQ sentencia* LLAVE_DER aliter_bloque* (ALITER LLAVE_IZQ sentencia* LLAVE_DER)? FINIS PUNTO_COMA;
+si_sentencia: SI PARENTESIS_IZQ condicion PARENTESIS_DER LLAVE_IZQ sentencia* LLAVE_DER aliter_bloque* ((ALITER) LLAVE_IZQ sentencia* LLAVE_DER)? FINIS PUNTO_COMA;
 
 aliter_bloque: ALITER SI PARENTESIS_IZQ condicion PARENTESIS_DER LLAVE_IZQ sentencia* LLAVE_DER;
 
@@ -111,14 +113,14 @@ ciclo_facere: FACERE LLAVE_IZQ sentencia* LLAVE_DER DUM PARENTESIS_IZQ condicion
 
 ciclo_per: PER PARENTESIS_IZQ inicializacion_per condiciones_per PUNTO_COMA incremento_per PARENTESIS_DER LLAVE_IZQ sentencia* LLAVE_DER;
 
-inicializacion_per: ESTO VARIABLE DOS_PUNTOS tipo_dato expresion PUNTO_COMA
-                  | VARIABLE ASIGNACION expresion PUNTO_COMA;
+inicializacion_per: ESTO VARIABLE DOS_PUNTOS? tipo_dato expresion PUNTO_COMA
+                  | (VARIABLE | acceso_miembro) ASIGNACION expresion PUNTO_COMA;
 
 condiciones_per: condicion;
 
-incremento_per: VARIABLE SUMA_ABREVIADA
-              | VARIABLE RESTA_ABREVIADA
-              | VARIABLE ASIGNACION expresion;
+incremento_per: (VARIABLE | acceso_miembro) SUMA_ABREVIADA
+              | (VARIABLE | acceso_miembro) RESTA_ABREVIADA
+              | (VARIABLE | acceso_miembro) ASIGNACION expresion;
 
 salto_sentencia: PERGE PUNTO_COMA
                | INTERRUMPE PUNTO_COMA;
