@@ -105,7 +105,8 @@ imprimir_sentencia: IMPRIMIR (CADENA_TEXTO | VARIABLE | acceso_miembro | llamada
 
 si_sentencia: SI PARENTESIS_IZQ condicion PARENTESIS_DER LLAVE_IZQ sentencia* LLAVE_DER aliter_bloque* ((ALITER) LLAVE_IZQ sentencia* LLAVE_DER)? FINIS PUNTO_COMA;
 
-aliter_bloque: ALITER SI PARENTESIS_IZQ condicion PARENTESIS_DER LLAVE_IZQ sentencia* LLAVE_DER;
+//aliter_bloque: ALITER SI PARENTESIS_IZQ condicion PARENTESIS_DER LLAVE_IZQ sentencia* LLAVE_DER;
+aliter_bloque: ALITER PARENTESIS_IZQ condicion PARENTESIS_DER LLAVE_IZQ sentencia* LLAVE_DER;
 
 ciclo_dum: DUM PARENTESIS_IZQ condicion PARENTESIS_DER LLAVE_IZQ sentencia* LLAVE_DER FINIS PUNTO_COMA;
 
