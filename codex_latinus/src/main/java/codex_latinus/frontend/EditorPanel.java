@@ -4,10 +4,8 @@ import codex_latinus.backend.Compiler;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
-import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -284,57 +282,6 @@ public class EditorPanel extends javax.swing.JPanel {
                 printToConsole("Error de compilación / análisis:");
                 printToConsole(ex.getMessage());
             }
-        }
-    }
-
-    private class LineNumberComponent extends JPanel {
-
-        private final JTextPane textArea;
-
-        public LineNumberComponent(JTextPane textArea) {
-            this.textArea = textArea;
-            setBackground(new Color(230, 230, 230));
-            setForeground(new Color(120, 120, 120));
-
-            textArea.getDocument().addDocumentListener(new DocumentListener() {
-                @Override
-                public void insertUpdate(DocumentEvent e) {
-                    repaint();
-                }
-
-                @Override
-                public void removeUpdate(DocumentEvent e) {
-                    repaint();
-                }
-
-                @Override
-                public void changedUpdate(DocumentEvent e) {
-                    repaint();
-                }
-            });
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            g.setFont(textArea.getFont());
-            java.awt.FontMetrics fm = g.getFontMetrics();
-
-            try {
-                int height = fm.getHeight();
-                int lines = textArea.getDocument().getDefaultRootElement().getElementCount();
-
-                int y = fm.getAscent();
-                for (int i = 0; i < lines; i++) {
-                    String lineNumStr = String.valueOf(i + 1);
-                    g.drawString(lineNumStr, getWidth() - fm.stringWidth(lineNumStr) - 10, y);
-                    y += height;
-                }
-            } catch (Exception e) {
-                // Manejo de excepciones
-            }
-
-            setPreferredSize(new Dimension(45, textArea.getHeight()));
         }
     }
 

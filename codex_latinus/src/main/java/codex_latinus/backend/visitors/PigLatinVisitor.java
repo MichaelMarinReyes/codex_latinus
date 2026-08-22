@@ -5,6 +5,7 @@ import codex_latinus.Codex_latinusParser;
 import codex_latinus.backend.errors.CompilationError;
 import codex_latinus.backend.symbols.Symbol;
 import codex_latinus.backend.symbols.SymbolTable;
+import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
@@ -26,11 +27,10 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
 
     @Override
     public String visitInit(Codex_latinusParser.InitContext ctx) {
-        StringBuilder sb = new StringBuilder();
         if (ctx.codex_latinus() != null) {
-            sb.append(visit(ctx.codex_latinus()));
+            return visit(ctx.codex_latinus());
         }
-        return sb.toString();
+        return "";
     }
 
     @Override
@@ -61,12 +61,7 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
 
     @Override
     public String visitMiembro_structura(Codex_latinusParser.Miembro_structuraContext ctx) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < ctx.getChildCount(); i++) {
-            ParseTree child = ctx.getChild(i);
-            sb.append(visitGenericElement(child)).append(" ");
-        }
-        return sb.toString().trim();
+        return visitChildrenGeneric(ctx);
     }
 
     @Override
@@ -85,20 +80,12 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
     @Override
     public String visitDeclaracion(Codex_latinusParser.DeclaracionContext ctx) {
         recordDeclarationInTable(ctx);
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < ctx.getChildCount(); i++) {
-            sb.append(visitGenericElement(ctx.getChild(i))).append(" ");
-        }
-        return sb.toString().trim();
+        return visitChildrenGeneric(ctx);
     }
 
     @Override
     public String visitArreglo_declaracion(Codex_latinusParser.Arreglo_declaracionContext ctx) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < ctx.getChildCount(); i++) {
-            sb.append(visitGenericElement(ctx.getChild(i))).append(" ");
-        }
-        return sb.toString().trim();
+        return visitChildrenGeneric(ctx);
     }
 
     @Override
@@ -119,44 +106,15 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
     @Override
     public String visitRatio_funcion(Codex_latinusParser.Ratio_funcionContext ctx) {
         String nombreFunc = ctx.VARIABLE() != null ? ctx.VARIABLE().getText() : "funcion";
-
-        int line = ctx.VARIABLE() != null ? ctx.VARIABLE().getSymbol().getLine() : ctx.getStart().getLine();
         int column = ctx.VARIABLE() != null ? ctx.VARIABLE().getSymbol().getCharPositionInLine() : ctx.getStart().getCharPositionInLine();
-
-        Symbol funcSym = new Symbol(nombreFunc, "funcion", "FUNCION", symbolTable.getCurrentScope(), line, column);
-        if (!symbolTable.define(funcSym)) {
-            semanticErrors.add(new CompilationError("SEMÁNTICO", "La función '" + nombreFunc + "' ya está declarada.", line, column));
-        }
-
-        symbolTable.enterScope("func_" + nombreFunc);
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < ctx.getChildCount(); i++) {
-            sb.append(visitGenericElement(ctx.getChild(i))).append(" ");
-        }
-        symbolTable.exitScope();
-
-        return sb.toString().trim();
+        return processFunction(nombreFunc, ctx, column);
     }
 
     @Override
     public String visitActio_funcion(Codex_latinusParser.Actio_funcionContext ctx) {
         String nombreFunc = ctx.VARIABLE() != null ? ctx.VARIABLE().getText() : "funcion";
-        int line = ctx.getStart().getLine();
         int column = ctx.VARIABLE() != null ? ctx.VARIABLE().getSymbol().getCharPositionInLine() : ctx.getStart().getCharPositionInLine();
-
-        Symbol funcSym = new Symbol(nombreFunc, "funcion", "FUNCION", symbolTable.getCurrentScope(), line, column);
-        if (!symbolTable.define(funcSym)) {
-            semanticErrors.add(new CompilationError("SEMÁNTICO", "La función '" + nombreFunc + "' ya está declarada.", line, column));
-        }
-
-        symbolTable.enterScope("func_" + nombreFunc);
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < ctx.getChildCount(); i++) {
-            sb.append(visitGenericElement(ctx.getChild(i))).append(" ");
-        }
-        symbolTable.exitScope();
-
-        return sb.toString().trim();
+        return processFunction(nombreFunc, ctx, column);
     }
 
     @Override
@@ -184,7 +142,7 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
         for (int i = 0; i < ctx.getChildCount(); i++) {
             ParseTree child = ctx.getChild(i);
             String text = child.getText();
-            if (text.equals(">>")) {
+            if (">>".equals(text)) {
                 sb.append("%OINK ");
             } else {
                 sb.append(visitGenericElement(child)).append(" ");
@@ -199,7 +157,7 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
         for (int i = 0; i < ctx.getChildCount(); i++) {
             ParseTree child = ctx.getChild(i);
             String text = child.getText();
-            if (text.equals("<<")) {
+            if ("<<".equals(text)) {
                 sb.append("%OINK_OINK ");
             } else {
                 sb.append(visitGenericElement(child)).append(" ");
@@ -228,18 +186,14 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
             String tipoVariable = sym.getType();
             String tipoValor = getTipoExpresion(ctx.expresion());
 
-            if (!tipoVariable.equalsIgnoreCase(tipoValor) && !tipoValor.equals("desconocido")) {
+            if (!tipoVariable.equalsIgnoreCase(tipoValor) && !"desconocido".equals(tipoValor)) {
                 semanticErrors.add(new CompilationError("SEMÁNTICO",
                         "Error de tipo: No se puede asignar '" + tipoValor + "' a una variable de tipo '" + tipoVariable + "'.",
                         ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine()));
             }
         }
 
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < ctx.getChildCount(); i++) {
-            sb.append(visitGenericElement(ctx.getChild(i))).append(" ");
-        }
-        return sb.toString().trim();
+        return visitChildrenGeneric(ctx);
     }
 
     private String getTipoExpresion(Codex_latinusParser.ExpresionContext ctx) {
@@ -263,33 +217,31 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
 
     @Override
     public String visitSi_sentencia(Codex_latinusParser.Si_sentenciaContext ctx) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < ctx.getChildCount(); i++) {
-            sb.append(visitGenericElement(ctx.getChild(i))).append(" ");
-        }
-        return sb.toString().trim();
+        return visitChildrenGeneric(ctx);
     }
 
     @Override
     public String visitCiclo_dum(Codex_latinusParser.Ciclo_dumContext ctx) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < ctx.getChildCount(); i++) {
-            sb.append(visitGenericElement(ctx.getChild(i))).append(" ");
-        }
-        return sb.toString().trim();
+        return visitChildrenGeneric(ctx);
     }
 
     @Override
     public String visitCiclo_facere(Codex_latinusParser.Ciclo_facereContext ctx) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < ctx.getChildCount(); i++) {
-            sb.append(visitGenericElement(ctx.getChild(i))).append(" ");
-        }
-        return sb.toString().trim();
+        return visitChildrenGeneric(ctx);
     }
 
     @Override
     public String visitCiclo_per(Codex_latinusParser.Ciclo_perContext ctx) {
+        return visitChildrenGeneric(ctx);
+    }
+
+    @Override
+    public String visitSalto_sentencia(Codex_latinusParser.Salto_sentenciaContext ctx) {
+        return visitChildrenGeneric(ctx);
+    }
+
+
+    private String visitChildrenGeneric(ParserRuleContext ctx) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < ctx.getChildCount(); i++) {
             sb.append(visitGenericElement(ctx.getChild(i))).append(" ");
@@ -297,13 +249,18 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
         return sb.toString().trim();
     }
 
-    @Override
-    public String visitSalto_sentencia(Codex_latinusParser.Salto_sentenciaContext ctx) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < ctx.getChildCount(); i++) {
-            sb.append(visitGenericElement(ctx.getChild(i))).append(" ");
+    private String processFunction(String nombreFunc, ParserRuleContext ctx, int column) {
+        int line = ctx.getStart().getLine();
+        Symbol funcSym = new Symbol(nombreFunc, "funcion", "FUNCION", symbolTable.getCurrentScope(), line, column);
+        if (!symbolTable.define(funcSym)) {
+            semanticErrors.add(new CompilationError("SEMÁNTICO", "La función '" + nombreFunc + "' ya está declarada.", line, column));
         }
-        return sb.toString().trim();
+
+        symbolTable.enterScope("func_" + nombreFunc);
+        String resultado = visitChildrenGeneric(ctx);
+        symbolTable.exitScope();
+
+        return resultado;
     }
 
     private void recordDeclarationInTable(Codex_latinusParser.DeclaracionContext ctx) {
@@ -323,7 +280,6 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
 
             int line = ctx.VARIABLE(0).getSymbol().getLine();
             int column = ctx.VARIABLE(0).getSymbol().getCharPositionInLine();
-            String scopeName = symbolTable.getCurrentScope().getScopeName();
 
             Symbol sym = new Symbol(nameVar, dataType, "VARIABLE", symbolTable.getCurrentScope(), line, column);
 

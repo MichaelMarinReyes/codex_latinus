@@ -11,6 +11,7 @@
 /home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/backend/visitors/PigLatinVisitor.java
 /home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/frontend/EditorPanel.java
 /home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/frontend/ErrorTablePanel.java
+/home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/frontend/LineNumberComponent.java
 /home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/frontend/MainWindow.java
 /home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/frontend/ParserTreePanel.java
 /home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/frontend/StackVisualizerPanel.java

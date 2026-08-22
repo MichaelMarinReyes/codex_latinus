@@ -23,14 +23,28 @@ public class Compiler {
     private PigLatinVisitor lastVisitor;
     private List<StackState> lastStackSteps = new ArrayList<>();
 
+    private String lastParsedCode = null;
+    private String lastTraductionResult = "";
+
     public static List<CompilationError> getCompilationErrors() {
         return compilationErrors;
     }
 
     public String parseCode(String code) {
+        if (code != null && code.equals(lastParsedCode)) {
+            return lastTraductionResult;
+        }
+
+        lastParsedCode = code;
         compilationErrors.clear();
         lastDotCode = "";
         lastVisitor = null;
+        lastStackSteps.clear();
+
+        if (code == null || code.trim().isEmpty()) {
+            lastTraductionResult = "";
+            return lastTraductionResult;
+        }
 
         CharStream input = CharStreams.fromString(code);
 
@@ -44,13 +58,13 @@ public class Compiler {
 
         Codex_latinusParser parser = new Codex_latinusParser(tokens);
         parser.removeErrorListeners();
-
         parser.addErrorListener(errorListener);
 
         ParseTree tree = parser.init();
 
         if (errorListener.hasErrors()) {
-            return "Se encontraron errores léxicos o sintácticos. Revisa la tabla de errores.";
+            lastTraductionResult = "Se encontraron errores léxicos o sintácticos. Revisa la tabla de errores.";
+            return lastTraductionResult;
         }
 
         lastVisitor = new PigLatinVisitor();
@@ -58,56 +72,29 @@ public class Compiler {
 
         if (!lastVisitor.getSemanticErrors().isEmpty()) {
             compilationErrors.addAll(lastVisitor.getSemanticErrors());
-
             lastDotCode = "";
             lastVisitor = null;
-
-            return "Se encontraron errores semánticos. Revisa la tabla de errores.";
+            lastTraductionResult = "Se encontraron errores semánticos. Revisa la tabla de errores.";
+            return lastTraductionResult;
         }
 
+        // Generar pasos de la pila y código DOT una sola vez durante la compilación
         generateStackSteps(tree);
 
         DotGenerator dotGenerator = new DotGenerator();
         lastDotCode = dotGenerator.generarDot(tree);
 
-        return traductionResult;
+        lastTraductionResult = traductionResult;
+        return lastTraductionResult;
     }
 
     public List<StackState> getStackSteps(String code) {
-        compilationErrors.clear();
-        CharStream input = CharStreams.fromString(code);
-        Codex_latinusLexer lexer = new Codex_latinusLexer(input);
-        lexer.removeErrorListeners();
-        CustomErrorListener errorListener = new CustomErrorListener(compilationErrors);
-        lexer.addErrorListener(errorListener);
-
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
-        Codex_latinusParser parser = new Codex_latinusParser(tokens);
-        parser.removeErrorListeners();
-        parser.addErrorListener(errorListener);
-
-        ParseTree tree = parser.init();
-
-        if (errorListener.hasErrors()) {
-            return new ArrayList<>();
-        }
-
-        PigLatinVisitor visitor = new PigLatinVisitor();
-        visitor.visit(tree);
-        if (!visitor.getSemanticErrors().isEmpty()) {
-            compilationErrors.addAll(visitor.getSemanticErrors());
-            return new ArrayList<>();
-        }
-
-        StackVisualizerListener listener = new StackVisualizerListener();
-        ParseTreeWalker walker = new ParseTreeWalker();
-        walker.walk(listener, tree);
-
-        lastStackSteps = listener.getHistory();
+        parseCode(code);
         return lastStackSteps;
     }
 
     private void generateStackSteps(ParseTree tree) {
+        if (tree == null) return;
         StackVisualizerListener listener = new StackVisualizerListener();
         ParseTreeWalker walker = new ParseTreeWalker();
         walker.walk(listener, tree);

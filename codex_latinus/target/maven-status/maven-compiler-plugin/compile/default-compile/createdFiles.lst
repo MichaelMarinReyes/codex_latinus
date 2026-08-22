@@ -10,6 +10,7 @@ codex_latinus/frontend/SymbolTablePanel$1.class
 codex_latinus/frontend/MainWindow$2.class
 codex_latinus/frontend/MainWindow$8.class
 codex_latinus/frontend/MainWindow$3.class
+codex_latinus/frontend/LineNumberComponent.class
 codex_latinus/frontend/MainWindow$7.class
 codex_latinus/frontend/MainWindow.class
 codex_latinus/frontend/ParserTreePanel.class
@@ -19,4 +20,5 @@ codex_latinus/frontend/ParserTreePanel$ZoomableImagePanel.class
 codex_latinus/frontend/MainWindow$9.class
 codex_latinus/Codex_latinusBaseListener.class
 codex_latinus/frontend/MainWindow$6.class
+codex_latinus/frontend/LineNumberComponent$1.class
 codex_latinus/Codex_latinusLexer.class
