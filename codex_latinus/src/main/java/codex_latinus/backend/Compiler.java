@@ -7,6 +7,7 @@ import codex_latinus.backend.errors.CustomErrorListener;
 import codex_latinus.backend.stack.StackState;
 import codex_latinus.backend.stack.StackVisualizerListener;
 import codex_latinus.backend.symbols.SymbolTable;
+import codex_latinus.backend.visitors.InterpreterVisitor;
 import codex_latinus.backend.visitors.PigLatinVisitor;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
@@ -14,6 +15,8 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -78,14 +81,76 @@ public class Compiler {
             return lastTraductionResult;
         }
 
-        // Generar pasos de la pila y código DOT una sola vez durante la compilación
         generateStackSteps(tree);
 
         DotGenerator dotGenerator = new DotGenerator();
         lastDotCode = dotGenerator.generarDot(tree);
 
         lastTraductionResult = traductionResult;
+
         return lastTraductionResult;
+    }
+
+    /**
+     * Devuelve el último texto traducido almacenado.
+     */
+    public String getTranslatedText() {
+        return lastTraductionResult;
+    }
+
+    /**
+     * Parsea el código y devuelve directamente el texto traducido.
+     */
+    public String getTranslatedText(String code) {
+        return parseCode(code);
+    }
+
+    /**
+     * Ejecuta el código utilizando el InterpreterVisitor de forma automatizada.
+     * @param code El código fuente en Codex Latinus
+     * @param simulatedInputs Lista de valores que responderán automáticamente a las peticiones
+     */
+    public String executeCode(String code, List<String> simulatedInputs) {
+        if (code == null || code.trim().isEmpty()) {
+            return "";
+        }
+
+        parseCode(code);
+
+        SymbolTable symbolTable = getSymbolTable();
+
+        InterpreterVisitor.setInputs(simulatedInputs);
+
+        CharStream input = CharStreams.fromString(code);
+        Codex_latinusLexer lexer = new Codex_latinusLexer(input);
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
+        Codex_latinusParser parser = new Codex_latinusParser(tokens);
+        ParseTree tree = parser.init();
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream printStream = new PrintStream(baos);
+        PrintStream oldOut = System.out;
+        System.setOut(printStream);
+
+        try {
+            InterpreterVisitor interpreter = new InterpreterVisitor();
+            interpreter.setSymbolTable(symbolTable);
+            interpreter.visit(tree);
+        } catch (Exception e) {
+            System.out.println("Error en ejecución: " + e.getMessage());
+        } finally {
+            System.setOut(oldOut);
+        }
+
+        String executeResult = baos.toString();
+        return executeResult;
+    }
+
+    /**
+     * Sobrecarga de executeCode sin parámetros adicionales (usa entradas vacías o por defecto).
+     */
+    public String executeCode(String code) {
+        return executeCode(code, new ArrayList<>());
     }
 
     public List<StackState> getStackSteps(String code) {

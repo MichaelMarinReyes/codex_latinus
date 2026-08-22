@@ -52,11 +52,9 @@ public class SymbolTablePanel extends javax.swing.JPanel {
     // End of variables declaration//GEN-END:variables
     
     private void initTableComponents() {
-        // Cambiamos el layout de NetBeans para que soporte la tabla expandida
         this.setLayout(new BorderLayout());
 
-        // Agregamos la columna "Tipo" junto a "Tipo de Dato"
-        String[] columns = {"Nombre", "Tipo de Dato", "Tipo", "Rol", "Ámbito", "Línea", "Columna"};
+        String[] columns = {"Nombre", "Tipo de Dato", "Valor", "Tipo", "Rol", "Ámbito", "Línea", "Columna"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -84,9 +82,15 @@ public class SymbolTablePanel extends javax.swing.JPanel {
                     }
                 }
 
+                Object valorSimbolo = sym.getValue();
+                if (valorSimbolo == null) {
+                    valorSimbolo = "----";
+                }
+
                 Object[] row = {
                     sym.getName(),
                     sym.getType(),
+                    valorSimbolo,
                     tipoDetalle,
                     sym.getCategory(),
                     scopeName,

@@ -7,6 +7,7 @@ import java.awt.Cursor;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.BorderFactory;
@@ -81,7 +82,6 @@ public class EditorPanel extends javax.swing.JPanel {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     // End of variables declaration//GEN-END:variables
-    
     public String getCodeText() {
         return codeTextArea.getText();
     }
@@ -96,11 +96,11 @@ public class EditorPanel extends javax.swing.JPanel {
     public String getResult() {
         return result;
     }
-    
+
     public void setResult(String text) {
         this.result = text;
     }
-    
+
     public void setConsoleTextArea(String text) {
         this.consoleTextArea.setText("");
     }
@@ -288,13 +288,25 @@ public class EditorPanel extends javax.swing.JPanel {
             printToConsole("Error: El editor está vacío.");
         } else {
             try {
-                result = compiler.parseCode(codigoFuente);
-
+                // 1. Generar y mostrar la traducción a PigLatin
+                String pigLatinResult = compiler.parseCode(codigoFuente);
                 printToConsole("Código traducido de Codex latinus a PigLatin\n");
-                printToConsole(result);
+                printToConsole(pigLatinResult);
 
+                // 2. Ejecutar el código y mostrar el resultado
                 printToExecution("Ejecución de prueba iniciada...\n");
 
+                List<String> entradasSimuladas = List.of("Estudiante X", "18");
+                String resultadoEjecucion = compiler.executeCode(codigoFuente, entradasSimuladas);
+
+                printToExecution(resultadoEjecucion);
+
+                // 3. ¡AQUÍ ESTÁ LO QUE FALTA! 
+                // Obtener la tabla de símbolos ya poblada y con valores actualizados por el intérprete
+                codex_latinus.backend.symbols.SymbolTable symbolTable = compiler.getSymbolTable();
+
+                // Si tienes una referencia a tu SymbolTablePanel en este contenedor o ventana principal, actualízala:
+                // symbolTablePanel.loadSymbols(symbolTable.getCurrentScope().getAllSymbols(), symbolTable.getTypeTable());
             } catch (Exception ex) {
                 printToConsole("Error de compilación / análisis:");
                 printToConsole(ex.getMessage());

@@ -14,17 +14,27 @@ public class Symbol {
     private final int line;
     private final int column;
 
+    private Object value;
+
     // Constructor para funciones con tipos de parámetros detallados
     public Symbol(String name, String type, String category, int numParameters, List<String> parameterTypes, int size, Scope scope, int line, int column) {
         this.name = name;
-        this.type = type;
-        this.category = category;
+        this.category = category != null ? category.toLowerCase() : "variable";
         this.numParameters = numParameters;
         this.parameterTypes = parameterTypes != null ? parameterTypes : new ArrayList<>();
         this.size = size;
         this.scope = scope;
         this.line = line;
         this.column = column;
+
+        // Si es una función y no se especificó un tipo de retorno, por defecto es "void".
+        if ("function".equals(this.category)) {
+            this.type = (type != null && !type.trim().isEmpty()) ? type.toLowerCase() : "void";
+            this.value = this.type;
+        } else {
+            this.type = type != null ? type.toLowerCase() : null;
+            this.value = "null";
+        }
     }
 
     // Constructor para funciones o arreglos básicos
@@ -46,7 +56,7 @@ public class Symbol {
     }
 
     public void setType(String type) {
-        this.type = type;
+        this.type = type != null ? type.toLowerCase() : null;
     }
 
     public String getCategory() {
@@ -75,5 +85,13 @@ public class Symbol {
 
     public int getColumn() {
         return column;
+    }
+
+    public Object getValue() {
+        return value;
+    }
+
+    public void setValue(Object value) {
+        this.value = value;
     }
 }

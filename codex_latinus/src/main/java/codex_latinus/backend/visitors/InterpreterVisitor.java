@@ -2,17 +2,34 @@ package codex_latinus.backend.visitors;
 
 import codex_latinus.Codex_latinusBaseVisitor;
 import codex_latinus.Codex_latinusParser;
+import codex_latinus.backend.symbols.Symbol;
+import codex_latinus.backend.symbols.SymbolTable;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
+import java.util.Queue;
 
 public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
 
     private final Map<String, Object> memory = new HashMap<>();
     private final Map<String, Codex_latinusParser.FuncionContext> funciones = new HashMap<>();
-    private final Scanner scanner = new Scanner(System.in);
+    private SymbolTable symbolTable;
+
+    private static final Queue<String> inputQueue = new LinkedList<>();
+
+    public void setSymbolTable(SymbolTable symbolTable) {
+        this.symbolTable = symbolTable;
+    }
+
+    public static void setInputs(List<String> inputs) {
+        inputQueue.clear();
+        if (inputs != null) {
+            inputQueue.addAll(inputs);
+        }
+    }
 
     @Override
     public Object visitInit(Codex_latinusParser.InitContext ctx) {
@@ -44,7 +61,9 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         } else if (dec.TEXTUM() != null || dec.CADENA_TEXTO() != null) {
             valor = dec.CADENA_TEXTO() != null ? limpiarCadena(dec.CADENA_TEXTO().getText()) : "";
         }
+
         memory.put(varName, valor);
+        actualizarValorEnTablaDeSimbolos(varName, valor);
         return valor;
     }
 
@@ -79,7 +98,11 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
             if (!text.equals(">>") && !text.equals(";")) {
                 Object val = visit(child);
                 if (val != null) {
-                    sb.append(val);
+                    if (val instanceof Boolean) {
+                        sb.append(((Boolean) val) ? "verum" : "falsus");
+                    } else {
+                        sb.append(val);
+                    }
                 } else {
                     sb.append(text);
                 }
@@ -92,21 +115,23 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
     @Override
     public Object visitLeer_sentencia(Codex_latinusParser.Leer_sentenciaContext ctx) {
         String varName = ctx.VARIABLE().getText();
-        if (scanner.hasNextLine()) {
-            String input = scanner.nextLine();
-            Object val = input;
-            try {
-                if (input.contains(".")) {
-                    val = Double.parseDouble(input);
-                } else {
-                    val = Integer.parseInt(input);
-                }
-            } catch (NumberFormatException e) {
-                if (input.equalsIgnoreCase("verum")) val = true;
-                else if (input.equalsIgnoreCase("falsus")) val = false;
+
+        String input = inputQueue.isEmpty() ? "18" : inputQueue.poll();
+
+        Object val = input;
+        try {
+            if (input.contains(".")) {
+                val = Double.parseDouble(input);
+            } else {
+                val = Integer.parseInt(input);
             }
-            memory.put(varName, val);
+        } catch (NumberFormatException e) {
+            if (input.equalsIgnoreCase("verum")) val = true;
+            else if (input.equalsIgnoreCase("falsus")) val = false;
         }
+
+        memory.put(varName, val);
+        actualizarValorEnTablaDeSimbolos(varName, val);
         return null;
     }
 
@@ -114,7 +139,9 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
     public Object visitAsignacion_sentencia(Codex_latinusParser.Asignacion_sentenciaContext ctx) {
         String varName = ctx.VARIABLE() != null ? ctx.VARIABLE().getText() : ctx.acceso_miembro().VARIABLE(0).getText();
         Object valor = visit(ctx.expresion());
+
         memory.put(varName, valor);
+        actualizarValorEnTablaDeSimbolos(varName, valor);
         return valor;
     }
 
@@ -159,6 +186,18 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
             }
             if (op.equals(">=")) {
                 return ((Number) izq).doubleValue() >= ((Number) der).doubleValue();
+            }
+            if (op.equals(">")) {
+                return ((Number) izq).doubleValue() > ((Number) der).doubleValue();
+            }
+            if (op.equals("<=")) {
+                return ((Number) izq).doubleValue() <= ((Number) der).doubleValue();
+            }
+            if (op.equals("<")) {
+                return ((Number) izq).doubleValue() < ((Number) der).doubleValue();
+            }
+            if (op.equals("==")) {
+                return izq != null && izq.equals(der);
             }
         } catch (Exception ignored) {}
 
@@ -222,6 +261,19 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         memory.clear();
         memory.putAll(backupMemory);
         return resultadoFuncion;
+    }
+
+    private void actualizarValorEnTablaDeSimbolos(String varName, Object valor) {
+        if (symbolTable != null) {
+            Symbol sym = symbolTable.resolve(varName);
+            if (sym != null) {
+                if (valor instanceof Boolean) {
+                    sym.setValue(((Boolean) valor) ? "verum" : "falsus");
+                } else {
+                    sym.setValue(valor);
+                }
+            }
+        }
     }
 
     private String limpiarCadena(String cad) {
