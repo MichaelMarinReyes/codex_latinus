@@ -19,9 +19,13 @@ import java.util.List;
 
 public class Compiler {
     private static String lastDotCode = "";
-    private static List<CompilationError> compilationErrors = new ArrayList<>();
+    private static final List<CompilationError> compilationErrors = new ArrayList<>();
     private PigLatinVisitor lastVisitor;
     private List<StackState> lastStackSteps = new ArrayList<>();
+
+    public static List<CompilationError> getCompilationErrors() {
+        return compilationErrors;
+    }
 
     public String parseCode(String code) {
         compilationErrors.clear();
@@ -49,13 +53,24 @@ public class Compiler {
             return "Se encontraron errores léxicos o sintácticos. Revisa la tabla de errores.";
         }
 
+        lastVisitor = new PigLatinVisitor();
+        String traductionResult = lastVisitor.visit(tree);
+
+        if (!lastVisitor.getSemanticErrors().isEmpty()) {
+            compilationErrors.addAll(lastVisitor.getSemanticErrors());
+
+            lastDotCode = "";
+            lastVisitor = null;
+
+            return "Se encontraron errores semánticos. Revisa la tabla de errores.";
+        }
+
         generateStackSteps(tree);
 
         DotGenerator dotGenerator = new DotGenerator();
         lastDotCode = dotGenerator.generarDot(tree);
 
-        lastVisitor = new PigLatinVisitor();
-        return (String) lastVisitor.visit(tree);
+        return traductionResult;
     }
 
     public List<StackState> getStackSteps(String code) {
@@ -63,7 +78,6 @@ public class Compiler {
         CharStream input = CharStreams.fromString(code);
         Codex_latinusLexer lexer = new Codex_latinusLexer(input);
         lexer.removeErrorListeners();
-
         CustomErrorListener errorListener = new CustomErrorListener(compilationErrors);
         lexer.addErrorListener(errorListener);
 
@@ -75,6 +89,13 @@ public class Compiler {
         ParseTree tree = parser.init();
 
         if (errorListener.hasErrors()) {
+            return new ArrayList<>();
+        }
+
+        PigLatinVisitor visitor = new PigLatinVisitor();
+        visitor.visit(tree);
+        if (!visitor.getSemanticErrors().isEmpty()) {
+            compilationErrors.addAll(visitor.getSemanticErrors());
             return new ArrayList<>();
         }
 
@@ -99,10 +120,6 @@ public class Compiler {
 
     public String getLastDotCode() {
         return lastDotCode;
-    }
-
-    public static List<CompilationError> getCompilationErrors() {
-        return compilationErrors;
     }
 
     public SymbolTable getSymbolTable() {

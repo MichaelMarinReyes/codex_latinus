@@ -74,7 +74,10 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
         StringBuilder sb = new StringBuilder();
         sb.append(applyPigLatinRule("VARIABILES")).append(" >\n");
         for (Codex_latinusParser.DeclaracionContext dec : ctx.declaracion()) {
-            sb.append(visit(dec)).append("\n");
+            String tradDec = visit(dec);
+            if (tradDec != null && !tradDec.isEmpty()) {
+                sb.append(tradDec).append("\n");
+            }
         }
         return sb.toString();
     }
@@ -122,7 +125,7 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
 
         Symbol funcSym = new Symbol(nombreFunc, "funcion", "FUNCION", symbolTable.getCurrentScope(), line, column);
         if (!symbolTable.define(funcSym)) {
-            semanticErrors.add(new CompilationError("Semántico", "La función '" + nombreFunc + "' ya está declarada.", line, column));
+            semanticErrors.add(new CompilationError("SEMÁNTICO", "La función '" + nombreFunc + "' ya está declarada.", line, column));
         }
 
         symbolTable.enterScope("func_" + nombreFunc);
@@ -143,7 +146,7 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
 
         Symbol funcSym = new Symbol(nombreFunc, "funcion", "FUNCION", symbolTable.getCurrentScope(), line, column);
         if (!symbolTable.define(funcSym)) {
-            semanticErrors.add(new CompilationError("Semántico", "La función '" + nombreFunc + "' ya está declarada.", line, column));
+            semanticErrors.add(new CompilationError("SEMÁNTICO", "La función '" + nombreFunc + "' ya está declarada.", line, column));
         }
 
         symbolTable.enterScope("func_" + nombreFunc);
@@ -216,7 +219,7 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
 
         Symbol sym = symbolTable.resolve(varName);
         if (sym == null) {
-            semanticErrors.add(new CompilationError("Semántico", "La variable '" + varName + "' no ha sido declarada.",
+            semanticErrors.add(new CompilationError("SEMÁNTICO", "La variable '" + varName + "' no ha sido declarada.",
                     ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine()));
             return "";
         }
@@ -226,7 +229,7 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
             String tipoValor = getTipoExpresion(ctx.expresion());
 
             if (!tipoVariable.equalsIgnoreCase(tipoValor) && !tipoValor.equals("desconocido")) {
-                semanticErrors.add(new CompilationError("Semántico",
+                semanticErrors.add(new CompilationError("SEMÁNTICO",
                         "Error de tipo: No se puede asignar '" + tipoValor + "' a una variable de tipo '" + tipoVariable + "'.",
                         ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine()));
             }
@@ -320,10 +323,12 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
 
             int line = ctx.VARIABLE(0).getSymbol().getLine();
             int column = ctx.VARIABLE(0).getSymbol().getCharPositionInLine();
+            String scopeName = symbolTable.getCurrentScope().getScopeName();
 
             Symbol sym = new Symbol(nameVar, dataType, "VARIABLE", symbolTable.getCurrentScope(), line, column);
+
             if (!symbolTable.define(sym)) {
-                semanticErrors.add(new CompilationError("Semántico", "La variable '" + nameVar + "' ya ha sido declarada en este ámbito.", line, column));
+                semanticErrors.add(new CompilationError("SEMÁNTICO", "La variable '" + nameVar + "' ya ha sido declarada en este ámbito.", line, column));
             }
         }
     }
@@ -331,7 +336,6 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
     private String visitGenericElement(ParseTree node) {
         if (node instanceof TerminalNode) {
             String text = node.getText();
-            // Si es una cadena de texto literal (ej. "hola"), no se traduce a Pig Latin
             if (text.startsWith("\"") && text.endsWith("\"")) {
                 return text;
             }

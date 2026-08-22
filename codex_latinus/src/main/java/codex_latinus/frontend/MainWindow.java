@@ -63,7 +63,7 @@ public class MainWindow extends javax.swing.JFrame {
         saveFileButton = new javax.swing.JButton();
         astButton = new javax.swing.JButton();
         symbolTableButton = new javax.swing.JButton();
-        semanticErrorButton = new javax.swing.JButton();
+        stackButton = new javax.swing.JButton();
         newFileButton = new javax.swing.JButton();
         lexerErrorButton = new javax.swing.JButton();
         sintaxErrorButton1 = new javax.swing.JButton();
@@ -126,16 +126,16 @@ public class MainWindow extends javax.swing.JFrame {
         });
         sidebarPanel.add(symbolTableButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 230, 180, 35));
 
-        semanticErrorButton.setText("Pila de procesos");
-        semanticErrorButton.setBorder(new javax.swing.border.MatteBorder(null));
-        semanticErrorButton.setBorderPainted(false);
-        semanticErrorButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        semanticErrorButton.addActionListener(new java.awt.event.ActionListener() {
+        stackButton.setText("Pila de procesos");
+        stackButton.setBorder(new javax.swing.border.MatteBorder(null));
+        stackButton.setBorderPainted(false);
+        stackButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        stackButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                semanticErrorButtonActionPerformed(evt);
+                stackButtonActionPerformed(evt);
             }
         });
-        sidebarPanel.add(semanticErrorButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 370, 180, 35));
+        sidebarPanel.add(stackButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 370, 180, 35));
 
         newFileButton.setText("Nuevo");
         newFileButton.setBorder(new javax.swing.border.MatteBorder(null));
@@ -245,6 +245,10 @@ public class MainWindow extends javax.swing.JFrame {
         }
 
         editorPanel.setCodeText("");
+        editorPanel.setConsoleTextArea("");
+        editorPanel.setResult("");
+        compiler = new Compiler();
+
         paintPanel(editorPanel);
         navText("Editor de código");
     }//GEN-LAST:event_newFileButtonActionPerformed
@@ -285,11 +289,14 @@ public class MainWindow extends javax.swing.JFrame {
             try {
                 String contenido = new String(Files.readAllBytes(fileToOpen.toPath()), StandardCharsets.UTF_8);
 
-                paintPanel(editorPanel);
+                compiler = new Compiler();
+                editorPanel.setResult("");
 
+                paintPanel(editorPanel);
                 navText("Editor de código / " + fileToOpen.getName());
 
                 editorPanel.setCodeText(contenido);
+                editorPanel.setConsoleTextArea("");
 
             } catch (java.io.IOException e) {
                 JOptionPane.showMessageDialog(this,
@@ -346,7 +353,7 @@ public class MainWindow extends javax.swing.JFrame {
 
     private void semanticErrorButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_semanticErrorButton1ActionPerformed
         List<CompilationError> semanticErrors = Compiler.getCompilationErrors().stream()
-                .filter(e -> "SEMANTICO".equalsIgnoreCase(e.getType()))
+                .filter(e -> "SEMÁNTICO".equalsIgnoreCase(e.getType()))
                 .collect(Collectors.toList());
 
         ErrorTablePanel panel = new ErrorTablePanel();
@@ -355,17 +362,16 @@ public class MainWindow extends javax.swing.JFrame {
         navText("Tabla de errores semánticos");
     }//GEN-LAST:event_semanticErrorButton1ActionPerformed
 
-    private void semanticErrorButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_semanticErrorButtonActionPerformed
+    private void stackButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_stackButtonActionPerformed
         String code = editorPanel.getCodeText();
         List<codex_latinus.backend.stack.StackState> steps = compiler.getStackSteps(code);
         stackVisualizerPanel.loadStates(steps);
 
         paintPanel(stackVisualizerPanel);
         navText("Pila de procesos");
-    }//GEN-LAST:event_semanticErrorButtonActionPerformed
+    }//GEN-LAST:event_stackButtonActionPerformed
 
     private void editTextButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_editTextButtonActionPerformed
-        editorPanel.setCodeText("");
         paintPanel(editorPanel);
         navText("Editor de código");
     }//GEN-LAST:event_editTextButtonActionPerformed
@@ -386,10 +392,10 @@ public class MainWindow extends javax.swing.JFrame {
     private javax.swing.JButton newFileButton;
     private javax.swing.JButton openFileButton;
     private javax.swing.JButton saveFileButton;
-    private javax.swing.JButton semanticErrorButton;
     private javax.swing.JButton semanticErrorButton1;
     private javax.swing.JPanel sidebarPanel;
     private javax.swing.JButton sintaxErrorButton1;
+    private javax.swing.JButton stackButton;
     private javax.swing.JButton symbolTableButton;
     // End of variables declaration//GEN-END:variables
 

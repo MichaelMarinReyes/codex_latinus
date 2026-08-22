@@ -95,6 +95,14 @@ public class EditorPanel extends javax.swing.JPanel {
     public String getResult() {
         return result;
     }
+    
+    public void setResult(String text) {
+        this.result = text;
+    }
+    
+    public void setConsoleTextArea(String text) {
+        this.consoleTextArea.setText("");
+    }
 
     /**
      * Inicializa los componentes del editor de código, consola, números de

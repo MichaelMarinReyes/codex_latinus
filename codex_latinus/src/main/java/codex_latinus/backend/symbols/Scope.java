@@ -15,10 +15,10 @@ public class Scope {
 
     // Inserta un símbolo en el ámbito actual. Retorna false si ya existe.
     public boolean define(Symbol symbol) {
-        if (symbols.containsKey(symbol.getName())) {
+        if (this.symbols.containsKey(symbol.getName())) {
             return false;
         }
-        symbols.put(symbol.getName(), symbol);
+        this.symbols.put(symbol.getName(), symbol);
         return true;
     }
 
