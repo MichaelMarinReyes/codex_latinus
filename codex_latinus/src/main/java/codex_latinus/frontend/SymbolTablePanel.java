@@ -1,6 +1,8 @@
 package codex_latinus.frontend;
 
 import codex_latinus.backend.symbols.Symbol;
+import codex_latinus.backend.symbols.TypeInfo;
+import codex_latinus.backend.symbols.TypeTable;
 import java.awt.BorderLayout;
 import java.util.List;
 import javax.swing.JScrollPane;
@@ -48,12 +50,13 @@ public class SymbolTablePanel extends javax.swing.JPanel {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     // End of variables declaration//GEN-END:variables
+    
     private void initTableComponents() {
         // Cambiamos el layout de NetBeans para que soporte la tabla expandida
         this.setLayout(new BorderLayout());
 
-        // Columnas para la tabla de símbolos
-        String[] columns = {"Nombre", "Tipo de Dato", "Rol", "Ámbito", "Línea", "Columna"};
+        // Agregamos la columna "Tipo" junto a "Tipo de Dato"
+        String[] columns = {"Nombre", "Tipo de Dato", "Tipo", "Rol", "Ámbito", "Línea", "Columna"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -67,15 +70,24 @@ public class SymbolTablePanel extends javax.swing.JPanel {
         this.add(scrollPane, BorderLayout.CENTER);
     }
 
-    public void loadSymbols(List<Symbol> symbols) {
+    public void loadSymbols(List<Symbol> symbols, TypeTable typeTable) {
         tableModel.setRowCount(0);
         if (symbols != null) {
             for (Symbol sym : symbols) {
                 String scopeName = (sym.getScope() != null) ? sym.getScope().getScopeName() : "global";
 
+                String tipoDetalle = "Primitivo";
+                if (typeTable != null && sym.getType() != null) {
+                    TypeInfo info = typeTable.resolveType(sym.getType());
+                    if (info != null) {
+                        tipoDetalle = "Tamaño: " + info.getSizeInBytes();
+                    }
+                }
+
                 Object[] row = {
                     sym.getName(),
                     sym.getType(),
+                    tipoDetalle,
                     sym.getCategory(),
                     scopeName,
                     sym.getLine(),
@@ -84,5 +96,9 @@ public class SymbolTablePanel extends javax.swing.JPanel {
                 tableModel.addRow(row);
             }
         }
+    }
+
+    public void loadSymbols(List<Symbol> symbols) {
+        loadSymbols(symbols, null);
     }
 }
