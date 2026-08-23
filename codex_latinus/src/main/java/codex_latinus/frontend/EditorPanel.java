@@ -7,7 +7,6 @@ import java.awt.Cursor;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.BorderFactory;
@@ -16,7 +15,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
-import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextPane;
 import javax.swing.event.CaretEvent;
@@ -36,8 +34,6 @@ public class EditorPanel extends javax.swing.JPanel {
 
     private JTextPane codeTextArea;
     private JTextArea consoleTextArea;
-    private JTextArea executionTextArea;
-    private JTabbedPane tabbedPaneOutputs;
     private JLabel statusLabel;
     private JButton compileButton;
     private LineNumberComponent lineNumberComponent;
@@ -82,6 +78,7 @@ public class EditorPanel extends javax.swing.JPanel {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     // End of variables declaration//GEN-END:variables
+    
     public String getCodeText() {
         return codeTextArea.getText();
     }
@@ -96,11 +93,11 @@ public class EditorPanel extends javax.swing.JPanel {
     public String getResult() {
         return result;
     }
-
+    
     public void setResult(String text) {
         this.result = text;
     }
-
+    
     public void setConsoleTextArea(String text) {
         this.consoleTextArea.setText("");
     }
@@ -130,27 +127,16 @@ public class EditorPanel extends javax.swing.JPanel {
         codeScrollPane.setBackground(backgroundGray);
         codeScrollPane.getViewport().setBackground(new Color(255, 255, 255));
 
-        // Consola 1: PigLatin
         consoleTextArea = new JTextArea();
         consoleTextArea.setFont(new Font("Monospaced", Font.PLAIN, 13));
         consoleTextArea.setEditable(false);
         consoleTextArea.setBackground(new Color(30, 30, 30));
         consoleTextArea.setForeground(new Color(220, 220, 220));
+
         JScrollPane consoleScrollPane = new JScrollPane(consoleTextArea);
-
-        // Consola 2: Traducción / Ejecución
-        executionTextArea = new JTextArea();
-        executionTextArea.setFont(new Font("Monospaced", Font.PLAIN, 13));
-        executionTextArea.setEditable(false);
-        executionTextArea.setBackground(new Color(30, 30, 30));
-        executionTextArea.setForeground(new Color(220, 220, 220));
-        JScrollPane executionScrollPane = new JScrollPane(executionTextArea);
-
-        // Panel de Pestañas para las salidas
-        tabbedPaneOutputs = new JTabbedPane();
-        tabbedPaneOutputs.addTab("PigLatin", consoleScrollPane);
-        tabbedPaneOutputs.addTab("Traducción", executionScrollPane);
-        tabbedPaneOutputs.setBorder(BorderFactory.createTitledBorder(" Consola de Resultados "));
+        consoleScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        consoleScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        consoleScrollPane.setBorder(BorderFactory.createTitledBorder(" Consola de Resultados "));
 
         JPanel statusPanel = new JPanel(new BorderLayout());
         statusPanel.setBackground(backgroundGray);
@@ -171,7 +157,7 @@ public class EditorPanel extends javax.swing.JPanel {
         statusLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
         statusPanel.add(statusLabel, BorderLayout.EAST);
 
-        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, codeScrollPane, tabbedPaneOutputs);
+        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, codeScrollPane, consoleScrollPane);
         splitPane.setResizeWeight(0.75);
         splitPane.setDividerLocation(350);
         splitPane.setBackground(backgroundGray);
@@ -281,32 +267,17 @@ public class EditorPanel extends javax.swing.JPanel {
 
     private void compileButtonActionPerformed(ActionEvent evt) {
         consoleTextArea.setText("");
-        executionTextArea.setText("");
         String codigoFuente = codeTextArea.getText();
 
         if (codigoFuente.trim().isEmpty()) {
             printToConsole("Error: El editor está vacío.");
         } else {
             try {
-                // 1. Generar y mostrar la traducción a PigLatin
-                String pigLatinResult = compiler.parseCode(codigoFuente);
+                result = compiler.parseCode(codigoFuente);
+
                 printToConsole("Código traducido de Codex latinus a PigLatin\n");
-                printToConsole(pigLatinResult);
+                printToConsole(result);
 
-                // 2. Ejecutar el código y mostrar el resultado
-                printToExecution("Ejecución de prueba iniciada...\n");
-
-                List<String> entradasSimuladas = List.of("Estudiante X", "18");
-                String resultadoEjecucion = compiler.executeCode(codigoFuente, entradasSimuladas);
-
-                printToExecution(resultadoEjecucion);
-
-                // 3. ¡AQUÍ ESTÁ LO QUE FALTA! 
-                // Obtener la tabla de símbolos ya poblada y con valores actualizados por el intérprete
-                codex_latinus.backend.symbols.SymbolTable symbolTable = compiler.getSymbolTable();
-
-                // Si tienes una referencia a tu SymbolTablePanel en este contenedor o ventana principal, actualízala:
-                // symbolTablePanel.loadSymbols(symbolTable.getCurrentScope().getAllSymbols(), symbolTable.getTypeTable());
             } catch (Exception ex) {
                 printToConsole("Error de compilación / análisis:");
                 printToConsole(ex.getMessage());
@@ -319,13 +290,7 @@ public class EditorPanel extends javax.swing.JPanel {
         consoleTextArea.append(text + "\n");
     }
 
-    public void printToExecution(String text) {
-        executionTextArea.setForeground(Color.CYAN);
-        executionTextArea.append(text + "\n");
-    }
-
     public void clearConsole() {
         consoleTextArea.setText("");
-        executionTextArea.setText("");
     }
 }

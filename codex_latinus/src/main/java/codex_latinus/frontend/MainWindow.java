@@ -330,7 +330,10 @@ public class MainWindow extends javax.swing.JFrame {
     }//GEN-LAST:event_symbolTableButtonActionPerformed
 
     private void lexerErrorButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_lexerErrorButtonActionPerformed
-        List<CompilationError> lexicalErrors = Compiler.getCompilationErrors().stream()
+        String code = editorPanel.getCodeText();
+        compiler.parseCode(code);
+
+        List<CompilationError> lexicalErrors = compiler.getAllErrors().stream()
                 .filter(e -> "LEXICO".equalsIgnoreCase(e.getType()))
                 .collect(Collectors.toList());
 
@@ -341,7 +344,10 @@ public class MainWindow extends javax.swing.JFrame {
     }//GEN-LAST:event_lexerErrorButtonActionPerformed
 
     private void sintaxErrorButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sintaxErrorButton1ActionPerformed
-        List<CompilationError> syntaxErrors = Compiler.getCompilationErrors().stream()
+        String code = editorPanel.getCodeText();
+        compiler.parseCode(code);
+
+        List<CompilationError> syntaxErrors = compiler.getAllErrors().stream()
                 .filter(e -> "SINTACTICO".equalsIgnoreCase(e.getType()))
                 .collect(Collectors.toList());
 
@@ -352,8 +358,11 @@ public class MainWindow extends javax.swing.JFrame {
     }//GEN-LAST:event_sintaxErrorButton1ActionPerformed
 
     private void semanticErrorButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_semanticErrorButton1ActionPerformed
-        List<CompilationError> semanticErrors = Compiler.getCompilationErrors().stream()
-                .filter(e -> "SEMÁNTICO".equalsIgnoreCase(e.getType()))
+        String code = editorPanel.getCodeText();
+        compiler.parseCode(code);
+        
+        List<CompilationError> semanticErrors = compiler.getAllErrors().stream()
+                .filter(e -> "SEMANTICO".equalsIgnoreCase(e.getType()) || "SEMÁNTICO".equalsIgnoreCase(e.getType()))
                 .collect(Collectors.toList());
 
         ErrorTablePanel panel = new ErrorTablePanel();

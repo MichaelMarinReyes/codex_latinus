@@ -7,10 +7,9 @@ codex_latinus: (structura_def | variables | munera)* maior;
 
 structura_def: STRUCTURA VARIABLE LLAVE_IZQ miembro_structura* LLAVE_DER FINIS PUNTO_COMA;
 
-miembro_structura: ESTO VARIABLE DOS_PUNTOS? tipo_dato (COMA | PUNTO_COMA)?
-                 | SERIES VARIABLE DOS_PUNTOS? tipo_dato (COMA | PUNTO_COMA)?
-                 | ESTO VARIABLE DOS_PUNTOS? VARIABLE (COMA | PUNTO_COMA)?
-                 | SERIES VARIABLE DOS_PUNTOS? VARIABLE (COMA | PUNTO_COMA)?;
+miembro_structura: ESTO VARIABLE DOS_PUNTOS (tipo_dato | VARIABLE) (COMA | PUNTO_COMA)?
+                 | SERIES VARIABLE DOS_PUNTOS (tipo_dato | VARIABLE) (COMA | PUNTO_COMA)?
+                 | SERIES VARIABLE CORCHETE_IZQ NUMERO_ENTERO CORCHETE_DER DOS_PUNTOS (tipo_dato | VARIABLE) (COMA | PUNTO_COMA)?;
 
 variables: VARIABILES MAYOR_QUE (declaracion | arreglo_declaracion | structura_def)+;
 
@@ -53,8 +52,7 @@ tipo_dato: NUMERUS
 
 parametros: parametro (COMA parametro)*;
 
-parametro: ESTO VARIABLE DOS_PUNTOS? tipo_dato
-         | ESTO VARIABLE DOS_PUNTOS? VARIABLE;
+parametro: ESTO VARIABLE DOS_PUNTOS? (tipo_dato | VARIABLE);
 
 variables_locales: VARIABILES CORCHETE_IZQ declaracion_local+ CORCHETE_DER;
 
@@ -114,7 +112,7 @@ ciclo_facere: FACERE LLAVE_IZQ sentencia* LLAVE_DER DUM PARENTESIS_IZQ condicion
 
 ciclo_per: PER PARENTESIS_IZQ inicializacion_per condiciones_per PUNTO_COMA incremento_per PARENTESIS_DER LLAVE_IZQ sentencia* LLAVE_DER;
 
-inicializacion_per: ESTO VARIABLE DOS_PUNTOS? tipo_dato expresion PUNTO_COMA
+inicializacion_per: ESTO VARIABLE DOS_PUNTOS? tipo_dato (ASIGNACION)? expresion PUNTO_COMA
                   | (VARIABLE | acceso_miembro) ASIGNACION expresion PUNTO_COMA;
 
 condiciones_per: condicion;
