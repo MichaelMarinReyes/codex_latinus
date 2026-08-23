@@ -24,6 +24,8 @@ public class SemanticAnalyzerVisitor extends Codex_latinusBaseVisitor<Object> {
     private final List<CompilationError> semanticErrors;
     private final FunctionHandler functionHandler;
     private final LoopHandler loopHandler;
+    private String currentFunctionReturnType = null;
+    private boolean hasReturned = false;
 
     /**
      * Constructor para inicializar el analizador semántico.
@@ -127,6 +129,39 @@ public class SemanticAnalyzerVisitor extends Codex_latinusBaseVisitor<Object> {
         return visitChildren(ctx);
     }
 
+    @Override
+    public Object visitReddere(Codex_latinusParser.Reddere_sentenciaContext ctx) {
+        if (currentFunctionReturnType == null) {
+            semanticErrors.add(new CompilationError("SEMÁNTICO", "La sentencia 'reddere' no puede usarse dentro de una acción (actio) o fuera de una función.", ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine()));
+            return null;
+        }
+
+        if (hasReturned) {
+            semanticErrors.add(new CompilationError("SEMÁNTICO",
+                    "Código inalcanzable detectado: hay instrucciones después de una sentencia 'reddere'.",
+                    ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine()));
+        }
+
+        if (ctx.expresion() != null) {
+            Object tipoExprObj = visit(ctx.expresion());
+            String tipoExpresion = tipoExprObj != null ? tipoExprObj.toString().toLowerCase() : "desconocido";
+
+            if (!tipoExpresion.equals(currentFunctionReturnType) && !tipoExpresion.equals("desconocido")) {
+                semanticErrors.add(new CompilationError("SEMÁNTICO",
+                        "Incompatibilidad de tipos en el retorno: Se esperaba '" + currentFunctionReturnType +
+                                "' pero se encontró '" + tipoExpresion + "'.",
+                        ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine()));
+            }
+        } else {
+            semanticErrors.add(new CompilationError("SEMÁNTICO",
+                    "La función requiere retornar un valor de tipo '" + currentFunctionReturnType + "'.",
+                    ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine()));
+        }
+
+        hasReturned = true;
+        return null;
+    }
+
     /**
      * Visita funciones con retorno delegando la lógica al manejador correspondiente.
      *
@@ -135,7 +170,39 @@ public class SemanticAnalyzerVisitor extends Codex_latinusBaseVisitor<Object> {
      */
     @Override
     public Object visitRatio_funcion(Codex_latinusParser.Ratio_funcionContext ctx) {
-        return functionHandler.handleRatioFuncion(ctx, c -> (String) visitChildren(c));
+        String tipoRetornoEsperado = ctx.tipo_dato() != null ? ctx.tipo_dato().getText().toLowerCase() : "desconocido";
+
+        String prevReturnType = currentFunctionReturnType;
+        boolean prevHasReturned = hasReturned;
+
+        currentFunctionReturnType = tipoRetornoEsperado;
+        hasReturned = false;
+
+        functionHandler.handleRatioFuncion(ctx, c -> {
+            if (ctx.sentencia() != null) {
+                for (Codex_latinusParser.SentenciaContext sent : ctx.sentencia()) {
+                    if (hasReturned) {
+                        semanticErrors.add(new CompilationError("SEMÁNTICO",
+                                "Código muerto: la sentencia no será ejecutada debido a un retorno previo.",
+                                sent.getStart().getLine(), sent.getStart().getCharPositionInLine()));
+                        break;
+                    }
+                    visit(sent);
+                }
+            }
+            return null;
+        });
+
+        if (!hasReturned) {
+            semanticErrors.add(new CompilationError("SEMÁNTICO",
+                    "La función con retorno '" + ctx.VARIABLE().getText() + "' no garantiza un retorno en todos sus caminos.",
+                    ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine()));
+        }
+
+        currentFunctionReturnType = prevReturnType;
+        hasReturned = prevHasReturned;
+
+        return null;
     }
 
     /**
@@ -146,7 +213,20 @@ public class SemanticAnalyzerVisitor extends Codex_latinusBaseVisitor<Object> {
      */
     @Override
     public Object visitActio_funcion(Codex_latinusParser.Actio_funcionContext ctx) {
-        return functionHandler.handleActioFuncion(ctx, c -> (String) visitChildren(c));
+        String prevReturnType = currentFunctionReturnType;
+        boolean prevHasReturned = hasReturned;
+
+        currentFunctionReturnType = null;
+        hasReturned = false;
+
+        functionHandler.handleActioFuncion(ctx, c -> {
+            visitChildren(c);
+            return null;
+        });
+
+        currentFunctionReturnType = prevReturnType;
+        hasReturned = prevHasReturned;
+        return null;
     }
 
     /**

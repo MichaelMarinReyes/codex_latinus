@@ -19,10 +19,10 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextPane;
 import javax.swing.event.CaretEvent;
-import javax.swing.event.CaretListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.Style;
@@ -37,7 +37,9 @@ import javax.swing.text.StyledDocument;
 public class EditorPanel extends javax.swing.JPanel {
 
     private JTextPane codeTextArea;
-    private JTextArea consoleTextArea;
+    private JTextArea pigLatinConsole;
+    private JTextArea executionConsole;
+    private JTabbedPane consoleTabbedPane;
     private JLabel statusLabel;
     private JButton compileButton;
     private LineNumberComponent lineNumberComponent;
@@ -87,10 +89,6 @@ public class EditorPanel extends javax.swing.JPanel {
         return codeTextArea.getText();
     }
 
-    /**
-     * Método para establecer el texto del código fuente en el editor.
-     * @param text
-     */
     public void setCodeText(String text) {
         codeTextArea.setText(text);
     }
@@ -103,10 +101,29 @@ public class EditorPanel extends javax.swing.JPanel {
         this.result = text;
     }
 
+    /**
+     * Método de compatibilidad para establecer texto en las consolas desde MainWindow.
+     * @param text El texto a mostrar.
+     */
     public void setConsoleTextArea(String text) {
-        this.consoleTextArea.setText("");
+        if (pigLatinConsole != null) {
+            pigLatinConsole.setText(text);
+        }
+        if (executionConsole != null) {
+            executionConsole.setText(text);
+        }
     }
 
+    /**
+     * Método de compatibilidad para imprimir en la consola de PigLatin.
+     */
+    public void printToConsole(String text) {
+        if (pigLatinConsole != null) {
+            pigLatinConsole.setForeground(Color.GREEN);
+            pigLatinConsole.append(text + "\n");
+        }
+    }
+    
     /**
      * Inicializa los componentes del editor de código, consola, números de
      * línea, botón compilar y barra de estado.
@@ -119,6 +136,7 @@ public class EditorPanel extends javax.swing.JPanel {
         Color backgroundGray = new Color(240, 240, 240);
         this.setBackground(backgroundGray);
 
+        // Editor de código fuente (Área superior)
         codeTextArea = new JTextPane();
         codeTextArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
         codeTextArea.setBackground(new Color(255, 255, 255));
@@ -132,23 +150,35 @@ public class EditorPanel extends javax.swing.JPanel {
         codeScrollPane.setBackground(backgroundGray);
         codeScrollPane.getViewport().setBackground(new Color(255, 255, 255));
 
-        consoleTextArea = new JTextArea();
-        consoleTextArea.setFont(new Font("Monospaced", Font.PLAIN, 13));
-        consoleTextArea.setEditable(false);
-        consoleTextArea.setBackground(new Color(30, 30, 30));
-        consoleTextArea.setForeground(new Color(220, 220, 220));
+        // Consola Pestaña 1: PigLatin
+        pigLatinConsole = new JTextArea();
+        pigLatinConsole.setFont(new Font("Monospaced", Font.PLAIN, 13));
+        pigLatinConsole.setEditable(false);
+        pigLatinConsole.setBackground(new Color(30, 30, 30));
+        pigLatinConsole.setForeground(new Color(220, 220, 220));
+        JScrollPane pigLatinScroll = new JScrollPane(pigLatinConsole);
 
-        JScrollPane consoleScrollPane = new JScrollPane(consoleTextArea);
-        consoleScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        consoleScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        consoleScrollPane.setBorder(BorderFactory.createTitledBorder(" Consola de Resultados "));
+        // Consola Pestaña 2: Ejecución
+        executionConsole = new JTextArea();
+        executionConsole.setFont(new Font("Monospaced", Font.PLAIN, 13));
+        executionConsole.setEditable(false);
+        executionConsole.setBackground(new Color(30, 30, 30));
+        executionConsole.setForeground(new Color(220, 220, 220));
+        JScrollPane executionScroll = new JScrollPane(executionConsole);
 
+        // Panel con pestañas para la consola
+        consoleTabbedPane = new JTabbedPane();
+        consoleTabbedPane.addTab("PigLatin", pigLatinScroll);
+        consoleTabbedPane.addTab("Ejecución", executionScroll);
+        consoleTabbedPane.setBorder(BorderFactory.createTitledBorder(" Consola de Resultados "));
+
+        // Barra de estado y botón compilar (Área inferior)
         JPanel statusPanel = new JPanel(new BorderLayout());
         statusPanel.setBackground(backgroundGray);
         statusPanel.setBorder(BorderFactory.createEmptyBorder(2, 5, 2, 5));
 
-        compileButton = new JButton("Compilar");
-        compileButton.setBackground(Color.GREEN);
+        compileButton = new JButton("Compilar y Ejecutar");
+        compileButton.setBackground(new Color(46, 139, 87));
         compileButton.setForeground(Color.WHITE);
         compileButton.setCursor(new java.awt.Cursor(Cursor.HAND_CURSOR));
         compileButton.addActionListener(e -> compileButtonActionPerformed(e));
@@ -162,7 +192,8 @@ public class EditorPanel extends javax.swing.JPanel {
         statusLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
         statusPanel.add(statusLabel, BorderLayout.EAST);
 
-        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, codeScrollPane, consoleScrollPane);
+        // SplitPane principal separando Editor y Consola Tabulada
+        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, codeScrollPane, consoleTabbedPane);
         splitPane.setResizeWeight(0.75);
         splitPane.setDividerLocation(350);
         splitPane.setBackground(backgroundGray);
@@ -170,24 +201,17 @@ public class EditorPanel extends javax.swing.JPanel {
         this.add(splitPane, BorderLayout.CENTER);
         this.add(statusPanel, BorderLayout.SOUTH);
 
-        // Listener para actualizar el coloreado dinámicamente
+        // Listener para coloreado sintáctico dinámico
         codeTextArea.getDocument().addDocumentListener(new DocumentListener() {
             @Override
-            public void insertUpdate(DocumentEvent e) {
-                triggerHighlight();
-            }
-
+            public void insertUpdate(DocumentEvent e) { triggerHighlight(); }
             @Override
-            public void removeUpdate(DocumentEvent e) {
-                triggerHighlight();
-            }
-
+            public void removeUpdate(DocumentEvent e) { triggerHighlight(); }
             @Override
-            public void changedUpdate(DocumentEvent e) {
-                triggerHighlight();
-            }
+            public void changedUpdate(DocumentEvent e) { triggerHighlight(); }
         });
 
+        // Listener para posición del cursor
         codeTextArea.addCaretListener((CaretEvent e) -> {
             int lineNumber = 1;
             int columnNumber = 1;
@@ -205,27 +229,22 @@ public class EditorPanel extends javax.swing.JPanel {
                     }
                 }
             } catch (Exception ex) {
-                // Manejo de errores
+                // Manejo de excepciones de posición
             }
             statusLabel.setText("Línea: " + lineNumber + " | Columna: " + columnNumber);
         });
     }
 
-    /**
-     * Método privado para inicializar los colores del editor.
-     */
     private void inicializarColores() {
-        colorSecciones = new Color(128, 0, 128); // Morado para secciones (VARIABILES>, etc.)
-        colorKeywords = new Color(0, 0, 255); // Azul para palabras clave (si, ratio, actio, etc.)
-        colorTipos = new Color(0, 128, 128); // Cian oscuro para tipos (numerus, textum, etc.)
-        colorCadenas = new Color(0, 128, 0); // Verde para cadenas de texto
-        colorComentarios = new Color(128, 128, 128); // Gris para comentarios
+        colorSecciones = new Color(128, 0, 128); 
+        colorKeywords = new Color(0, 0, 255); 
+        colorTipos = new Color(0, 128, 128); 
+        colorCadenas = new Color(0, 128, 0); 
+        colorComentarios = new Color(128, 128, 128); 
     }
 
     private void triggerHighlight() {
-        if (isUpdatingHighlight) {
-            return;
-        }
+        if (isUpdatingHighlight) return;
         isUpdatingHighlight = true;
 
         javax.swing.SwingUtilities.invokeLater(() -> {
@@ -234,9 +253,6 @@ public class EditorPanel extends javax.swing.JPanel {
         });
     }
 
-    /**
-     * Método encargado de analizar el texto y aplicar los colores configurados.
-     */
     private void applySyntaxHighlighting() {
         StyledDocument doc = codeTextArea.getStyledDocument();
         String text = codeTextArea.getText();
@@ -267,65 +283,62 @@ public class EditorPanel extends javax.swing.JPanel {
     }
 
     private void compileButtonActionPerformed(ActionEvent evt) {
-        consoleTextArea.setText("");
+        pigLatinConsole.setText("");
+        executionConsole.setText("");
         String codigoFuente = codeTextArea.getText();
 
         if (codigoFuente.trim().isEmpty()) {
-            printToConsole("Error: El editor está vacío.");
-        } else {
-            try {
-                result = compiler.parseCode(codigoFuente);
+            pigLatinConsole.setForeground(Color.RED);
+            pigLatinConsole.setText("Error: El editor está vacío.");
+            executionConsole.setForeground(Color.RED);
+            executionConsole.setText("Error: El editor está vacío.");
+            return;
+        }
 
-                printToConsole("Código traducido de Codex latinus a PigLatin\n");
-                printToConsole(result);
+        try {
+            // 1. Obtener resultado de traducción a PigLatin
+            result = compiler.parseCode(codigoFuente);
+            pigLatinConsole.setForeground(new Color(220, 220, 220));
+            pigLatinConsole.setText(result);
 
-            } catch (Exception ex) {
-                printToConsole("Error de compilación / análisis:");
-                printToConsole(ex.getMessage());
+            // 2. Si pasa la compilación sin errores, ejecutar en la segunda pestaña
+            if (compiler.getCompilationErrors().isEmpty()) {
+                String executionOutput = compiler.executeCode(codigoFuente);
+                executionConsole.setForeground(new Color(220, 220, 220));
+                executionConsole.setText(executionOutput != null && !executionOutput.isEmpty() 
+                        ? executionOutput 
+                        : "Ejecución finalizada con éxito (Sin salida por consola).");
+            } else {
+                executionConsole.setForeground(Color.ORANGE);
+                executionConsole.setText("No se puede ejecutar debido a errores de compilación o análisis.");
             }
+
+        } catch (Exception ex) {
+            pigLatinConsole.setForeground(Color.RED);
+            pigLatinConsole.setText("Error en la traducción:\n" + ex.getMessage());
+            
+            executionConsole.setForeground(Color.RED);
+            executionConsole.setText("Error en la ejecución:\n" + ex.getMessage());
         }
     }
 
-    public void printToConsole(String text) {
-        consoleTextArea.setForeground(Color.GREEN);
-        consoleTextArea.append(text + "\n");
-    }
-
     public void clearConsole() {
-        consoleTextArea.setText("");
+        pigLatinConsole.setText("");
+        executionConsole.setText("");
     }
 
-    /**
-     * Obtiene la tabla de símbolos generada tras el análisis del compilador.
-     * @return 
-     */
     public SymbolTable getSymbolTable() {
         return compiler.getSymbolTable();
     }
 
-    /**
-     * Obtiene la lista de errores (léxicos, sintácticos o semánticos)
-     * registrados por el compilador.
-     * @return 
-     */
     public List<CompilationError> getCompilationErrors() {
         return compiler.getCompilationErrors();
     }
 
-    /**
-     * Obtiene el código DOT correspondiente al último Árbol Sintáctico
-     * Abstracto (AST) generado.
-     * @return 
-     */
     public String getLastDotCode() {
         return compiler.getLastDotCode();
     }
 
-    /**
-     * Obtiene la lista de estados de la pila de procesos calculados durante el
-     * análisis.
-     * @return 
-     */
     public List<StackState> getLastStackSteps() {
         return compiler.getLastStackSteps();
     }

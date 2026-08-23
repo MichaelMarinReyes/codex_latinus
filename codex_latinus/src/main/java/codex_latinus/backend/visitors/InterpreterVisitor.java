@@ -3,6 +3,7 @@ package codex_latinus.backend.visitors;
 import codex_latinus.Codex_latinusBaseVisitor;
 import codex_latinus.Codex_latinusParser;
 import codex_latinus.backend.errors.CompilationError;
+import codex_latinus.backend.handlers.FunctionHandler;
 import codex_latinus.backend.symbols.Symbol;
 import codex_latinus.backend.symbols.SymbolTable;
 import codex_latinus.backend.handlers.ControlFlowHandler;
@@ -24,6 +25,7 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
     private SymbolTable symbolTable;
     private final LoopHandler loopHandler;
     private final ControlFlowHandler controlFlowHandler;
+    private final FunctionHandler functionHandler;
 
     /**
      * Constructor para inicializar el intérprete con una tabla de símbolos y un registro de errores.
@@ -36,6 +38,7 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         this.semanticErrors = semanticErrors != null ? semanticErrors : new ArrayList<>();
         this.loopHandler = new LoopHandler(this.semanticErrors);
         this.controlFlowHandler = new ControlFlowHandler(this, this.symbolTable);
+        this.functionHandler = new FunctionHandler(this.symbolTable, this.semanticErrors);
     }
 
     /**
@@ -129,6 +132,7 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
     public Object visitDeclaracion(Codex_latinusParser.DeclaracionContext dec) {
         if (dec.VARIABLE() == null || dec.VARIABLE().isEmpty()) return null;
         String varName = dec.VARIABLE(0).getText();
+        String tipoDato = dec.tipo_dato() != null ? dec.tipo_dato().getText() : "desconocido";
         Object valor = null;
 
         if (dec.expresion() != null) {
@@ -148,6 +152,11 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
             Symbol sym = symbolTable.resolve(varName);
             if (sym != null) {
                 sym.setValue(valor);
+            } else {
+                Symbol newSym = new Symbol(varName, tipoDato, "variable", symbolTable.getCurrentScope(),
+                        dec.getStart().getLine(), dec.getStart().getCharPositionInLine());
+                newSym.setValue(valor);
+                symbolTable.define(newSym);
             }
         }
         return valor;
@@ -721,31 +730,50 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         Codex_latinusParser.FuncionContext funcCtx = funciones.get(funcName);
         if (funcCtx == null) return null;
 
-        symbolTable.enterScope("actio_" + funcName);
-
-        if (funcCtx.ratio_funcion() != null && funcCtx.ratio_funcion().parametros() != null) {
-            var params = funcCtx.ratio_funcion().parametros().parametro();
-            var args = ctx.argumentos().expresion();
-            for (int i = 0; i < params.size(); i++) {
-                String paramName = params.get(i).VARIABLE(0).getText();
-                Object argVal = visit(args.get(i));
-                Symbol paramSym = symbolTable.resolve(paramName);
-                if (paramSym != null) {
-                    paramSym.setValue(argVal);
-                }
+        List<Object> argValues = new ArrayList<>();
+        if (ctx.argumentos() != null && ctx.argumentos().expresion() != null) {
+            for (Codex_latinusParser.ExpresionContext expr : ctx.argumentos().expresion()) {
+                argValues.add(visit(expr));
             }
         }
 
         Object resultadoFuncion = null;
         try {
-            visit(funcCtx);
+            if (funcCtx.ratio_funcion() != null) {
+                resultadoFuncion = functionHandler.handleRatioFuncion(funcCtx.ratio_funcion(), argValues, c -> visit(c));
+            } else if (funcCtx.actio_funcion() != null) {
+                resultadoFuncion = functionHandler.handleActioFuncion(funcCtx.actio_funcion(), argValues, c -> visit(c));
+            }
         } catch (ControlFlowHandler.ReturnException e) {
             resultadoFuncion = e.getValue();
-        } finally {
-            symbolTable.exitScope();
         }
 
         return resultadoFuncion;
+    }
+
+    @Override
+    public Object visitRatio_funcion(Codex_latinusParser.Ratio_funcionContext ctx) {
+        for (int i = 0; i < ctx.getChildCount(); i++) {
+            visit(ctx.getChild(i));
+        }
+        return null;
+    }
+
+    @Override
+    public Object visitActio_funcion(Codex_latinusParser.Actio_funcionContext ctx) {
+        for (int i = 0; i < ctx.getChildCount(); i++) {
+            visit(ctx.getChild(i));
+        }
+        return null;
+    }
+
+    @Override
+    public Object visitReddere(Codex_latinusParser.Reddere_sentenciaContext ctx) {
+        Object valorRetorno = null;
+        if (ctx.expresion() != null) {
+            valorRetorno = visit(ctx.expresion());
+        }
+        throw new ControlFlowHandler.ReturnException(valorRetorno);
     }
 
     /**

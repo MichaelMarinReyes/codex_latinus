@@ -53,7 +53,7 @@ public class Compiler {
      * Si el código es idéntico al último analizado, retorna el resultado almacenado en caché.
      *
      * @param code El código fuente en texto plano escrito en Codex Latinus.
-     * @return El resultado de la traducción, o un mensaje de error si la compilación falla.
+     * @return El resultado de la traducción, o un mensaje de error detallado si la compilación falla.
      */
     public String parseCode(String code) {
         if (code != null && code.equals(lastParsedCode) && !lastTraductionResult.isEmpty()) {
@@ -89,8 +89,10 @@ public class Compiler {
 
         ParseTree tree = parser.init();
 
-        if (errorListener.hasErrors()) {
-            lastTraductionResult = "Se encontraron errores léxicos o sintácticos. Revisa la tabla de errores.";
+        // Si el listener detectó errores léxicos o sintácticos
+        if (errorListener.hasErrors() || !compilationErrors.isEmpty()) {
+            lastDotCode = "";
+            lastTraductionResult = formatErrorDetails("Se encontraron errores léxicos o sintácticos:");
             return lastTraductionResult;
         }
 
@@ -111,10 +113,10 @@ public class Compiler {
             return lastTraductionResult;
         }
 
+        // Si se encontraron errores durante el análisis semántico
         if (!compilationErrors.isEmpty()) {
-            System.out.println(lastTraductionResult);
             lastDotCode = "";
-            lastTraductionResult = "Se encontraron errores en el análisis. Revisa la tabla de errores.";
+            lastTraductionResult = formatErrorDetails("Se encontraron errores en el análisis semántico:");
             return lastTraductionResult;
         }
 
@@ -124,6 +126,17 @@ public class Compiler {
         lastDotCode = dotGenerator.generarDot(tree);
 
         return lastTraductionResult;
+    }
+
+    /**
+     * Método auxiliar para formatear la lista de errores de compilación en un String legible.
+     */
+    private String formatErrorDetails(String header) {
+        StringBuilder sb = new StringBuilder(header + "\n");
+        for (CompilationError error : compilationErrors) {
+            sb.append(" • ").append(error.toString()).append("\n");
+        }
+        return sb.toString();
     }
 
     /**
@@ -159,7 +172,7 @@ public class Compiler {
         parseCode(code);
 
         if (!compilationErrors.isEmpty()) {
-            return "No se puede ejecutar debido a errores en el código.";
+            return "No se puede ejecutar debido a errores en el código:\n" + formatErrorDetails("");
         }
 
         SymbolTable symbolTable = getSymbolTable();
@@ -179,6 +192,8 @@ public class Compiler {
 
         try {
             lastInterpreterVisitor = new InterpreterVisitor(symbolTable, compilationErrors);
+            System.out.println("CÓDIGO HUMANO");
+            System.out.println(lastInterpreterVisitor);
             lastInterpreterVisitor.visit(tree);
         } catch (Exception e) {
             System.out.println("Error en ejecución: " + e.getMessage());

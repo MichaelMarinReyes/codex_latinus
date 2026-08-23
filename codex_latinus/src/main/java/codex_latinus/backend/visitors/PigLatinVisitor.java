@@ -27,12 +27,6 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
     private final FunctionHandler functionHandler;
     private int loopDepth = 0;
 
-    /**
-     * Constructor para inicializar el traductor/visitante con una tabla de símbolos y un registro de errores.
-     *
-     * @param symbolTable    Tabla de símbolos inicial. Si es nula, se crea una nueva por defecto.
-     * @param semanticErrors Lista de errores semánticos. Si es nula, se inicializa una lista vacía.
-     */
     public PigLatinVisitor(SymbolTable symbolTable, List<CompilationError> semanticErrors) {
         this.symbolTable = symbolTable != null ? symbolTable : new SymbolTable();
         this.semanticErrors = semanticErrors != null ? semanticErrors : new ArrayList<>();
@@ -120,14 +114,44 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
     @Override
     public String visitVariables(Codex_latinusParser.VariablesContext ctx) {
         StringBuilder sb = new StringBuilder();
-        sb.append(applyPigLatinRule("VARIABILES")).append(" >\n");
-        for (int i = 0; i < ctx.getChildCount(); i++) {
-            ParseTree child = ctx.getChild(i);
-            String trad = visit(child);
-            if (trad != null && !trad.isEmpty() && !trad.equals("VARIABILES >")) {
-                sb.append(trad).append("\n");
+
+        String openSymbol = ">";
+        if (ctx.getChildCount() > 1) {
+            String text = ctx.getChild(1).getText();
+            if (text.equals("[")) {
+                openSymbol = "[";
             }
         }
+
+        sb.append(applyPigLatinRule("VARIABILES")).append(" ").append(openSymbol);
+        if (openSymbol.equals(">")) {
+            sb.append("\n");
+        } else {
+            sb.append(" ");
+        }
+
+        for (int i = 0; i < ctx.getChildCount(); i++) {
+            ParseTree child = ctx.getChild(i);
+            String text = child.getText();
+
+            if (text.equalsIgnoreCase("VARIABILES") || text.equals(">") || text.equals("[") || text.equals("]")) {
+                continue;
+            }
+
+            String trad = visit(child);
+            if (trad != null && !trad.isEmpty()) {
+                if (openSymbol.equals(">")) {
+                    sb.append(trad).append("\n");
+                } else {
+                    sb.append(trad).append(" ");
+                }
+            }
+        }
+
+        if (openSymbol.equals("[")) {
+            sb.append("]");
+        }
+
         return sb.toString().trim();
     }
 
@@ -208,18 +232,66 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
     }
 
     @Override
+    public String visitRatio_funcion(Codex_latinusParser.Ratio_funcionContext ctx) {
+        StringBuilder sb = new StringBuilder();
+
+        String tipo = ctx.tipo_dato() != null ? visit(ctx.tipo_dato()) : "";
+        String nombre = ctx.VARIABLE() != null ? ctx.VARIABLE().getText() : "";
+
+        sb.append("ratio ").append(tipo).append(" ").append(nombre).append("(");
+
+        if (ctx.parametros() != null) {
+            sb.append(visit(ctx.parametros()));
+        }
+        sb.append(") {\n");
+
+        if (ctx.sentencia() != null) {
+            for (Codex_latinusParser.SentenciaContext sent : ctx.sentencia()) {
+                sb.append("    ").append(visit(sent)).append("\n");
+            }
+        }
+        sb.append("}\n");
+
+        return sb.toString();
+    }
+
+    @Override
+    public String visitActio_funcion(Codex_latinusParser.Actio_funcionContext ctx) {
+        StringBuilder sb = new StringBuilder();
+
+        String nombre = ctx.VARIABLE() != null ? ctx.VARIABLE().getText() : "";
+
+        sb.append("actio ").append(nombre).append("(");
+
+        if (ctx.parametros() != null) {
+            sb.append(visit(ctx.parametros()));
+        }
+        sb.append(") {\n");
+
+        if (ctx.sentencia() != null) {
+            for (Codex_latinusParser.SentenciaContext sent : ctx.sentencia()) {
+                sb.append("    ").append(visit(sent)).append("\n");
+            }
+        }
+        sb.append("}\n");
+
+        return sb.toString();
+    }
+
+    @Override
     public String visitFuncion(Codex_latinusParser.FuncionContext ctx) {
         return visitChildren(ctx);
     }
 
     @Override
-    public String visitRatio_funcion(Codex_latinusParser.Ratio_funcionContext ctx) {
-        return functionHandler.handleRatioFuncion(ctx, this::visitChildrenGeneric);
-    }
-
-    @Override
-    public String visitActio_funcion(Codex_latinusParser.Actio_funcionContext ctx) {
-        return functionHandler.handleActioFuncion(ctx, this::visitChildrenGeneric);
+    public String visitReddere(Codex_latinusParser.Reddere_sentenciaContext ctx) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(applyPigLatinRule("reddere")).append(" ");
+        if (ctx.expresion() != null) {
+            sb.append(visit(ctx.expresion()));
+        }
+        sb.append(" ;");
+        return sb.toString();
     }
 
     @Override
@@ -413,37 +485,25 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
     private int getJerarquia(String tipo) {
         if (tipo == null) return -1;
         switch (tipo.toLowerCase()) {
-            case "textum":
-                return 5;
-            case "decimalis":
-                return 4;
-            case "numerus":
-                return 3;
-            case "littera":
-                return 2;
+            case "textum": return 5;
+            case "decimalis": return 4;
+            case "numerus": return 3;
+            case "littera": return 2;
             case "boolean":
             case "verum":
-            case "falsus":
-                return 1;
-            default:
-                return -1;
+            case "falsus": return 1;
+            default: return -1;
         }
     }
 
     private String getTipoByJerarquia(int j) {
         switch (j) {
-            case 5:
-                return "textum";
-            case 4:
-                return "decimalis";
-            case 3:
-                return "numerus";
-            case 2:
-                return "littera";
-            case 1:
-                return "boolean";
-            default:
-                return "desconocido";
+            case 5: return "textum";
+            case 4: return "decimalis";
+            case 3: return "numerus";
+            case 2: return "littera";
+            case 1: return "boolean";
+            default: return "desconocido";
         }
     }
 
@@ -490,6 +550,23 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
         return visitChildrenGeneric(ctx);
     }
 
+    /**
+     * MÉTODO CLAVE AÑADIDO: Intercepta cualquier nodo terminal (palabras clave, identificadores, etc.)
+     * que no tenga un visitante específico y les aplica la regla de traducción a Pig Latin.
+     */
+    @Override
+    public String visitTerminal(TerminalNode node) {
+        String text = node.getText();
+        if (text == null) return "";
+        if ((text.startsWith("\"") && text.endsWith("\"")) || (text.startsWith("'") && text.endsWith("'"))) {
+            return text;
+        }
+        if (isAlphabeticWord(text)) {
+            return applyPigLatinRule(text);
+        }
+        return text;
+    }
+
     public String visitChildren(ParserRuleContext node) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < node.getChildCount(); i++) {
@@ -521,14 +598,7 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
 
     private String visitGenericElement(ParseTree node) {
         if (node instanceof TerminalNode) {
-            String text = node.getText();
-            if (text.startsWith("\"") && text.endsWith("\"")) {
-                return text;
-            }
-            if (isAlphabeticWord(text)) {
-                return applyPigLatinRule(text);
-            }
-            return text;
+            return visitTerminal((TerminalNode) node);
         } else {
             String res = visit(node);
             return res != null ? res : "";

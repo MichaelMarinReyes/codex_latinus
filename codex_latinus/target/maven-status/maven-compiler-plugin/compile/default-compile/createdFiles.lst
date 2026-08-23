@@ -17,5 +17,6 @@ codex_latinus/frontend/MainWindow$7.class
 codex_latinus/frontend/ParserTreePanel.class
 codex_latinus/frontend/MainWindow$10.class
 codex_latinus/Codex_latinusListener.class
+codex_latinus/backend/visitors/PigLatinVisitor.class
 codex_latinus/frontend/MainWindow$6.class
 codex_latinus/Codex_latinusLexer.class

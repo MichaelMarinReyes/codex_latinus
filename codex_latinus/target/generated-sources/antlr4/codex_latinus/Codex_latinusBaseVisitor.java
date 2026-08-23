@@ -11,7 +11,7 @@ import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
  * operations with no return type.
  */
 @SuppressWarnings("CheckReturnValue")
-public class Codex_latinusBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements Codex_latinusVisitor<T> {
+public abstract class Codex_latinusBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements Codex_latinusVisitor<T> {
 	/**
 	 * {@inheritDoc}
 	 *
@@ -75,7 +75,10 @@ public class Codex_latinusBaseVisitor<T> extends AbstractParseTreeVisitor<T> imp
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
 	@Override public T visitElemento_arreglo_struct(Codex_latinusParser.Elemento_arreglo_structContext ctx) { return visitChildren(ctx); }
-	/**
+
+    public abstract Object visitReddere(Codex_latinusParser.Reddere_sentenciaContext ctx);
+
+    /**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation returns the result of calling
