@@ -2,6 +2,7 @@ package codex_latinus.frontend;
 
 import codex_latinus.backend.Compiler;
 import codex_latinus.backend.errors.CompilationError;
+import codex_latinus.backend.stack.StackState;
 import codex_latinus.backend.symbols.Scope;
 import codex_latinus.backend.symbols.Symbol;
 import codex_latinus.backend.symbols.SymbolTable;
@@ -308,7 +309,7 @@ public class MainWindow extends javax.swing.JFrame {
     }//GEN-LAST:event_openFileButtonActionPerformed
 
     private void astButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_astButtonActionPerformed
-        String dotContent = compiler.getLastDotCode();
+        String dotContent = editorPanel.getLastDotCode();
 
         treePanel.renderGraph(dotContent);
         paintPanel(treePanel);
@@ -316,12 +317,12 @@ public class MainWindow extends javax.swing.JFrame {
     }//GEN-LAST:event_astButtonActionPerformed
 
     private void symbolTableButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_symbolTableButtonActionPerformed
-        String code = editorPanel.getCodeText();
-        compiler.parseCode(code);
-        SymbolTable table = compiler.getSymbolTable();
+        SymbolTable table = editorPanel.getSymbolTable();
         List<Symbol> allSymbols = new ArrayList<>();
 
-        collectSymbolsRecursive(table.getCurrentScope(), allSymbols);
+        if (table != null && table.getCurrentScope() != null) {
+            collectSymbolsRecursive(table.getCurrentScope(), allSymbols);
+        }
 
         SymbolTablePanel panel = new SymbolTablePanel();
         panel.loadSymbols(allSymbols);
@@ -330,12 +331,14 @@ public class MainWindow extends javax.swing.JFrame {
     }//GEN-LAST:event_symbolTableButtonActionPerformed
 
     private void lexerErrorButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_lexerErrorButtonActionPerformed
-        String code = editorPanel.getCodeText();
-        compiler.parseCode(code);
+        List<CompilationError> allErrors = editorPanel.getCompilationErrors();
+        List<CompilationError> lexicalErrors = new ArrayList<>();
 
-        List<CompilationError> lexicalErrors = compiler.getAllErrors().stream()
-                .filter(e -> "LEXICO".equalsIgnoreCase(e.getType()))
-                .collect(Collectors.toList());
+        if (allErrors != null) {
+            lexicalErrors = allErrors.stream()
+                    .filter(e -> "LEXICO".equalsIgnoreCase(e.getType()))
+                    .collect(Collectors.toList());
+        }
 
         ErrorTablePanel panel = new ErrorTablePanel();
         panel.loadErrors(lexicalErrors);
@@ -344,12 +347,14 @@ public class MainWindow extends javax.swing.JFrame {
     }//GEN-LAST:event_lexerErrorButtonActionPerformed
 
     private void sintaxErrorButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sintaxErrorButton1ActionPerformed
-        String code = editorPanel.getCodeText();
-        compiler.parseCode(code);
+        List<CompilationError> allErrors = editorPanel.getCompilationErrors();
+        List<CompilationError> syntaxErrors = new ArrayList<>();
 
-        List<CompilationError> syntaxErrors = compiler.getAllErrors().stream()
-                .filter(e -> "SINTACTICO".equalsIgnoreCase(e.getType()))
-                .collect(Collectors.toList());
+        if (allErrors != null) {
+            syntaxErrors = allErrors.stream()
+                    .filter(e -> "SINTACTICO".equalsIgnoreCase(e.getType()))
+                    .collect(Collectors.toList());
+        }
 
         ErrorTablePanel panel = new ErrorTablePanel();
         panel.loadErrors(syntaxErrors);
@@ -358,24 +363,25 @@ public class MainWindow extends javax.swing.JFrame {
     }//GEN-LAST:event_sintaxErrorButton1ActionPerformed
 
     private void semanticErrorButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_semanticErrorButton1ActionPerformed
-        String code = editorPanel.getCodeText();
-        compiler.parseCode(code);
-        
-        List<CompilationError> semanticErrors = compiler.getAllErrors().stream()
-                .filter(e -> "SEMANTICO".equalsIgnoreCase(e.getType()) || "SEMÁNTICO".equalsIgnoreCase(e.getType()))
-                .collect(Collectors.toList());
+        List<CompilationError> allErrors = editorPanel.getCompilationErrors();
+        List<CompilationError> semanticErrors = new ArrayList<>();
+
+        if (allErrors != null) {
+            semanticErrors = allErrors.stream()
+                    .filter(e -> "SEMANTICO".equalsIgnoreCase(e.getType()))
+                    .collect(Collectors.toList());
+        }
 
         ErrorTablePanel panel = new ErrorTablePanel();
         panel.loadErrors(semanticErrors);
         paintPanel(panel);
-        navText("Tabla de errores semánticos");
+        navText("Tabla errores semánticos");
     }//GEN-LAST:event_semanticErrorButton1ActionPerformed
 
     private void stackButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_stackButtonActionPerformed
-        String code = editorPanel.getCodeText();
-        List<codex_latinus.backend.stack.StackState> steps = compiler.getStackSteps(code);
-        stackVisualizerPanel.loadStates(steps);
+        List<StackState> steps = editorPanel.getLastStackSteps();
 
+        stackVisualizerPanel.loadStates(steps);
         paintPanel(stackVisualizerPanel);
         navText("Pila de procesos");
     }//GEN-LAST:event_stackButtonActionPerformed

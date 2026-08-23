@@ -1,12 +1,16 @@
 package codex_latinus.frontend;
 
 import codex_latinus.backend.Compiler;
+import codex_latinus.backend.errors.CompilationError;
+import codex_latinus.backend.stack.StackState;
+import codex_latinus.backend.symbols.SymbolTable;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.BorderFactory;
@@ -37,7 +41,7 @@ public class EditorPanel extends javax.swing.JPanel {
     private JLabel statusLabel;
     private JButton compileButton;
     private LineNumberComponent lineNumberComponent;
-    private Compiler compiler = new Compiler();
+    private final Compiler compiler = new Compiler();
     private String result = "";
     private boolean isUpdatingHighlight = false;
     private Color colorSecciones;
@@ -85,6 +89,7 @@ public class EditorPanel extends javax.swing.JPanel {
 
     /**
      * Método para establecer el texto del código fuente en el editor.
+     * @param text
      */
     public void setCodeText(String text) {
         codeTextArea.setText(text);
@@ -93,11 +98,11 @@ public class EditorPanel extends javax.swing.JPanel {
     public String getResult() {
         return result;
     }
-    
+
     public void setResult(String text) {
         this.result = text;
     }
-    
+
     public void setConsoleTextArea(String text) {
         this.consoleTextArea.setText("");
     }
@@ -183,30 +188,26 @@ public class EditorPanel extends javax.swing.JPanel {
             }
         });
 
-        // Listener para actualizar línea y columna
-        codeTextArea.addCaretListener(new CaretListener() {
-            @Override
-            public void caretUpdate(CaretEvent e) {
-                int lineNumber = 1;
-                int columnNumber = 1;
-                try {
-                    int caretPos = codeTextArea.getCaretPosition();
-                    String text = codeTextArea.getText();
-                    if (caretPos <= text.length()) {
-                        for (int i = 0; i < caretPos; i++) {
-                            if (text.charAt(i) == '\n') {
-                                lineNumber++;
-                                columnNumber = 1;
-                            } else {
-                                columnNumber++;
-                            }
+        codeTextArea.addCaretListener((CaretEvent e) -> {
+            int lineNumber = 1;
+            int columnNumber = 1;
+            try {
+                int caretPos = codeTextArea.getCaretPosition();
+                String text = codeTextArea.getText();
+                if (caretPos <= text.length()) {
+                    for (int i = 0; i < caretPos; i++) {
+                        if (text.charAt(i) == '\n') {
+                            lineNumber++;
+                            columnNumber = 1;
+                        } else {
+                            columnNumber++;
                         }
                     }
-                } catch (Exception ex) {
-                    // Manejo de errores
                 }
-                statusLabel.setText("Línea: " + lineNumber + " | Columna: " + columnNumber);
+            } catch (Exception ex) {
+                // Manejo de errores
             }
+            statusLabel.setText("Línea: " + lineNumber + " | Columna: " + columnNumber);
         });
     }
 
@@ -292,5 +293,40 @@ public class EditorPanel extends javax.swing.JPanel {
 
     public void clearConsole() {
         consoleTextArea.setText("");
+    }
+
+    /**
+     * Obtiene la tabla de símbolos generada tras el análisis del compilador.
+     * @return 
+     */
+    public SymbolTable getSymbolTable() {
+        return compiler.getSymbolTable();
+    }
+
+    /**
+     * Obtiene la lista de errores (léxicos, sintácticos o semánticos)
+     * registrados por el compilador.
+     * @return 
+     */
+    public List<CompilationError> getCompilationErrors() {
+        return compiler.getCompilationErrors();
+    }
+
+    /**
+     * Obtiene el código DOT correspondiente al último Árbol Sintáctico
+     * Abstracto (AST) generado.
+     * @return 
+     */
+    public String getLastDotCode() {
+        return compiler.getLastDotCode();
+    }
+
+    /**
+     * Obtiene la lista de estados de la pila de procesos calculados durante el
+     * análisis.
+     * @return 
+     */
+    public List<StackState> getLastStackSteps() {
+        return compiler.getLastStackSteps();
     }
 }

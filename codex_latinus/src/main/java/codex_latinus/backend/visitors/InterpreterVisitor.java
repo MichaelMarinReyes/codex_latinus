@@ -5,28 +5,44 @@ import codex_latinus.Codex_latinusParser;
 import codex_latinus.backend.errors.CompilationError;
 import codex_latinus.backend.symbols.Symbol;
 import codex_latinus.backend.symbols.SymbolTable;
+import codex_latinus.backend.handlers.ControlFlowHandler;
+import codex_latinus.backend.handlers.LoopHandler;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.util.*;
 
+/**
+ * Visitante principal para la interpretación y ejecución del lenguaje Codex Latinus.
+ * Extiende de {@link Codex_latinusBaseVisitor} para recorrer el árbol de análisis sintáctico (AST)
+ * y evaluar expresiones, declaraciones, sentencias de control y llamadas a funciones.
+ */
 public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
 
     private static final Queue<String> inputQueue = new LinkedList<>();
     private final Map<String, Codex_latinusParser.FuncionContext> funciones = new HashMap<>();
-
     private final List<CompilationError> semanticErrors;
     private SymbolTable symbolTable;
+    private final LoopHandler loopHandler;
+    private final ControlFlowHandler controlFlowHandler;
 
-    public InterpreterVisitor() {
-        this.symbolTable = new SymbolTable();
-        this.semanticErrors = new ArrayList<>();
-    }
-
+    /**
+     * Constructor para inicializar el intérprete con una tabla de símbolos y un registro de errores.
+     *
+     * @param symbolTable Tabla de símbolos inicial. Si es nula, se crea una nueva por defecto.
+     * @param semanticErrors Lista de errores semánticos. Si es nula, se inicializa una lista vacía.
+     */
     public InterpreterVisitor(SymbolTable symbolTable, List<CompilationError> semanticErrors) {
         this.symbolTable = symbolTable != null ? symbolTable : new SymbolTable();
         this.semanticErrors = semanticErrors != null ? semanticErrors : new ArrayList<>();
+        this.loopHandler = new LoopHandler(this.semanticErrors);
+        this.controlFlowHandler = new ControlFlowHandler(this, this.symbolTable);
     }
 
+    /**
+     * Configura la cola de entradas de texto simuladas o ingresadas por el usuario.
+     *
+     * @param inputs Lista de cadenas de entrada.
+     */
     public static void setInputs(List<String> inputs) {
         inputQueue.clear();
         if (inputs != null) {
@@ -34,25 +50,53 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         }
     }
 
+    /**
+     * Actualiza la tabla de símbolos y la sincroniza con los manejadores internos.
+     *
+     * @param symbolTable Nueva tabla de símbolos.
+     */
     public void setSymbolTable(SymbolTable symbolTable) {
         if (symbolTable != null) {
             this.symbolTable = symbolTable;
+            this.controlFlowHandler.setSymbolTable(symbolTable);
         }
     }
 
+    /**
+     * Obtiene la tabla de símbolos actual del intérprete.
+     *
+     * @return La instancia de {@link SymbolTable}.
+     */
     public SymbolTable getSymbolTable() {
         return symbolTable;
     }
 
+    /**
+     * Obtiene la lista de errores semánticos recopilados durante la ejecución.
+     *
+     * @return Lista de {@link CompilationError}.
+     */
     public List<CompilationError> getSemanticErrors() {
         return semanticErrors;
     }
 
+    /**
+     * Visita el nodo inicial del programa.
+     *
+     * @param ctx Contexto de inicio del analizador.
+     * @return El resultado de evaluar el nodo principal del lenguaje.
+     */
     @Override
     public Object visitInit(Codex_latinusParser.InitContext ctx) {
         return visit(ctx.codex_latinus());
     }
 
+    /**
+     * Recorre todos los nodos hijos contenidos en el bloque principal del programa.
+     *
+     * @param ctx Contexto del bloque general.
+     * @return null al finalizar la ejecución secuencial.
+     */
     @Override
     public Object visitCodex_latinus(Codex_latinusParser.Codex_latinusContext ctx) {
         for (int i = 0; i < ctx.getChildCount(); i++) {
@@ -61,6 +105,12 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         return null;
     }
 
+    /**
+     * Visita el bloque de declaración de variables globales o locales.
+     *
+     * @param ctx Contexto de variables.
+     * @return null al finalizar.
+     */
     @Override
     public Object visitVariables(Codex_latinusParser.VariablesContext ctx) {
         for (int i = 0; i < ctx.getChildCount(); i++) {
@@ -69,6 +119,12 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         return null;
     }
 
+    /**
+     * Procesa la declaración de una variable individual, evaluando su expresión asignada o valor por defecto.
+     *
+     * @param dec Contexto de la declaración de variable.
+     * @return El valor asignado a la variable, o null si no aplica.
+     */
     @Override
     public Object visitDeclaracion(Codex_latinusParser.DeclaracionContext dec) {
         if (dec.VARIABLE() == null || dec.VARIABLE().isEmpty()) return null;
@@ -97,6 +153,12 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         return valor;
     }
 
+    /**
+     * Procesa la declaración y asignación de arreglos unidimensionales o multidimensionales.
+     *
+     * @param ctx Contexto de declaración del arreglo.
+     * @return Una lista de objetos que representa los elementos del arreglo.
+     */
     @Override
     public Object visitArreglo_declaracion(Codex_latinusParser.Arreglo_declaracionContext ctx) {
         if (ctx.VARIABLE() == null || ctx.VARIABLE().isEmpty()) return null;
@@ -120,6 +182,12 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         return valores;
     }
 
+    /**
+     * Registra las funciones declaradas en el módulo dentro del mapa de funciones ejecutables.
+     *
+     * @param ctx Contexto del bloque de funciones (munera).
+     * @return null al completar el registro.
+     */
     @Override
     public Object visitMunera(Codex_latinusParser.MuneraContext ctx) {
         for (Codex_latinusParser.FuncionContext func : ctx.funcion()) {
@@ -134,18 +202,30 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         return null;
     }
 
+    /**
+     * Ejecuta el bloque principal de código del programa, capturando interrupciones de bucle si ocurren.
+     *
+     * @param ctx Contexto del bloque principal (maior).
+     * @return null al finalizar.
+     */
     @Override
     public Object visitMaior(Codex_latinusParser.MaiorContext ctx) {
         for (Codex_latinusParser.SentenciaContext sent : ctx.sentencia()) {
             try {
                 visit(sent);
-            } catch (BreakException e) {
+            } catch (LoopHandler.BreakException e) {
                 break;
             }
         }
         return null;
     }
 
+    /**
+     * Procesa sentencias genéricas y operadores de incremento/decremento abreviados (++ / --).
+     *
+     * @param ctx Contexto de la sentencia.
+     * @return El resultado de visitar los nodos hijos o null si procesó una abreviación.
+     */
     @Override
     public Object visitSentencia(Codex_latinusParser.SentenciaContext ctx) {
         if (ctx.SUMA_ABREVIADA() != null || ctx.RESTA_ABREVIADA() != null) {
@@ -166,7 +246,13 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         }
         return visitChildren(ctx);
     }
-/*
+
+    /**
+     * Ejecuta la instrucción de impresión por consola evaluando las expresiones contenidas.
+     *
+     * @param ctx Contexto de la sentencia de impresión.
+     * @return null al terminar de imprimir.
+     */
     @Override
     public Object visitImprimir_sentencia(Codex_latinusParser.Imprimir_sentenciaContext ctx) {
         StringBuilder sb = new StringBuilder();
@@ -186,59 +272,15 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
                 }
             }
         }
-        System.out.println(sb.toString().replace("\"", ""));
         return null;
     }
 
-    @Override
-    public Object visitLeer_sentencia(Codex_latinusParser.Leer_sentenciaContext ctx) {
-        String varName = ctx.VARIABLE() != null ? ctx.VARIABLE().getText() : "";
-        String input = inputQueue.isEmpty() ? "18" : inputQueue.poll();
-
-        Object val = input;
-        try {
-            if (input.contains(".")) {
-                val = Double.parseDouble(input);
-            } else {
-                val = Integer.parseInt(input);
-            }
-        } catch (NumberFormatException e) {
-            if (input.equalsIgnoreCase("verum")) val = true;
-            else if (input.equalsIgnoreCase("falsus")) val = false;
-        }
-
-        if (symbolTable != null && !varName.isEmpty()) {
-            Symbol sym = symbolTable.resolve(varName);
-            if (sym != null) {
-                sym.setValue(val);
-            }
-        }
-        return null;
-    }*/
-
-    @Override
-    public Object visitImprimir_sentencia(Codex_latinusParser.Imprimir_sentenciaContext ctx) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < ctx.getChildCount(); i++) {
-            ParseTree child = ctx.getChild(i);
-            String text = child.getText();
-            if (!text.equals(">>") && !text.equals(";")) {
-                Object val = visit(child);
-                if (val != null) {
-                    if (val instanceof Boolean) {
-                        sb.append(((Boolean) val) ? "verum" : "falsus");
-                    } else {
-                        sb.append(val);
-                    }
-                } else {
-                    sb.append(text.replace("\"", ""));
-                }
-            }
-        }
-        String outputText = sb.toString().replace("\"", "");
-        return null;
-    }
-
+    /**
+     * Lee un valor de la cola de entradas y lo almacena tipado adecuadamente en la variable objetivo.
+     *
+     * @param ctx Contexto de la sentencia de lectura.
+     * @return null al completar la asignación de lectura.
+     */
     @Override
     public Object visitLeer_sentencia(Codex_latinusParser.Leer_sentenciaContext ctx) {
         String varName = ctx.VARIABLE() != null ? ctx.VARIABLE().getText() : "";
@@ -265,6 +307,12 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         return null;
     }
 
+    /**
+     * Maneja la asignación de valores a variables existentes o propiedades de estructuras y arreglos.
+     *
+     * @param ctx Contexto de asignación.
+     * @return El valor asignado.
+     */
     @Override
     public Object visitAsignacion_sentencia(Codex_latinusParser.Asignacion_sentenciaContext ctx) {
         Object value = null;
@@ -356,6 +404,12 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         return value;
     }
 
+    /**
+     * Resuelve el acceso a miembros de objetos (mapas) o elementos de arreglos (listas).
+     *
+     * @param ctx Contexto de acceso a miembro.
+     * @return El objeto o valor contenido en la posición o atributo consultado.
+     */
     @Override
     public Object visitAcceso_miembro(Codex_latinusParser.Acceso_miembroContext ctx) {
         if (ctx.VARIABLE() == null || ctx.VARIABLE().isEmpty()) return null;
@@ -407,6 +461,12 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         return actual;
     }
 
+    /**
+     * Evalúa la sentencia condicional if/else (si / aliter).
+     *
+     * @param ctx Contexto de la sentencia condicional.
+     * @return null al finalizar la ejecución del bloque correspondiente.
+     */
     @Override
     public Object visitSi_sentencia(Codex_latinusParser.Si_sentenciaContext ctx) {
         Object condicion = visit(ctx.condicion());
@@ -429,126 +489,56 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         return null;
     }
 
+    /**
+     * Delegado para la ejecución del ciclo mientras (dum) usando LoopHandler.
+     *
+     * @param ctx Contexto del ciclo dum.
+     * @return El resultado de la ejecución del ciclo.
+     */
     @Override
     public Object visitCiclo_dum(Codex_latinusParser.Ciclo_dumContext ctx) {
-        while (true) {
-            Object cond = visit(ctx.condicion());
-            if (!(cond instanceof Boolean) || !((Boolean) cond)) {
-                break;
-            }
-            try {
-                for (Codex_latinusParser.SentenciaContext sent : ctx.sentencia()) {
-                    visit(sent);
-                }
-            } catch (BreakException e) {
-                break;
-            }
-        }
-        return null;
+        return loopHandler.handleCicloDum(ctx, c -> visit(c));
     }
 
+    /**
+     * Delegado para la ejecución del ciclo hacer-mientras (facere) usando LoopHandler.
+     *
+     * @param ctx Contexto del ciclo facere.
+     * @return El resultado de la ejecución del ciclo.
+     */
     @Override
     public Object visitCiclo_facere(Codex_latinusParser.Ciclo_facereContext ctx) {
-        do {
-            try {
-                for (Codex_latinusParser.SentenciaContext sent : ctx.sentencia()) {
-                    visit(sent);
-                }
-            } catch (BreakException e) {
-                break;
-            }
-            Object cond = visit(ctx.condicion());
-            if (!(cond instanceof Boolean) || !((Boolean) cond)) {
-                break;
-            }
-        } while (true);
-        return null;
+        return loopHandler.handleCicloFacere(ctx, c -> visit(c));
     }
 
+    /**
+     * Delegado para la ejecución del ciclo for (per) usando LoopHandler.
+     *
+     * @param ctx Contexto del ciclo per.
+     * @return El resultado de la ejecución del ciclo.
+     */
     @Override
     public Object visitCiclo_per(Codex_latinusParser.Ciclo_perContext ctx) {
-        if (ctx.inicializacion_per() != null) {
-            visit(ctx.inicializacion_per());
-        }
-
-        while (true) {
-            Object cond = visit(ctx.condiciones_per());
-            if (!(cond instanceof Boolean) || !((Boolean) cond)) {
-                break;
-            }
-            try {
-                for (Codex_latinusParser.SentenciaContext sent : ctx.sentencia()) {
-                    visit(sent);
-                }
-            } catch (BreakException e) {
-                break;
-            }
-            if (ctx.incremento_per() != null) {
-                visit(ctx.incremento_per());
-            }
-        }
-        return null;
+        return loopHandler.handleCicloPer(ctx, c -> visit(c));
     }
 
-    @Override
-    public Object visitInicializacion_per(Codex_latinusParser.Inicializacion_perContext ctx) {
-        if (ctx.ESTO() != null) {
-            String varName = ctx.VARIABLE().getText();
-            Object val = visit(ctx.expresion());
-            Symbol sym = symbolTable.resolve(varName);
-            if (sym != null) sym.setValue(val);
-        } else {
-            String varName = ctx.VARIABLE() != null ? ctx.VARIABLE().getText() : ctx.acceso_miembro().VARIABLE(0).getText();
-            Object val = visit(ctx.expresion());
-            Symbol sym = symbolTable.resolve(varName);
-            if (sym != null) sym.setValue(val);
-        }
-        return null;
-    }
-
-    @Override
-    public Object visitIncremento_per(Codex_latinusParser.Incremento_perContext ctx) {
-        String varName = ctx.VARIABLE() != null ? ctx.VARIABLE().getText() : ctx.acceso_miembro().VARIABLE(0).getText();
-        Symbol sym = symbolTable.resolve(varName);
-        if (sym != null && sym.getValue() instanceof Number) {
-            double val = ((Number) sym.getValue()).doubleValue();
-            if (ctx.SUMA_ABREVIADA() != null) {
-                val++;
-            } else if (ctx.RESTA_ABREVIADA() != null) {
-                val--;
-            } else if (ctx.expresion() != null) {
-                Object resExp = visit(ctx.expresion());
-                if (resExp instanceof Number) val = ((Number) resExp).doubleValue();
-            }
-            if (sym.getValue() instanceof Integer) {
-                sym.setValue((int) val);
-            } else {
-                sym.setValue(val);
-            }
-        }
-        return null;
-    }
-
+    /**
+     * Delegado para el manejo de saltos de control como interrupciones y retornos.
+     *
+     * @param ctx Contexto de salto.
+     * @return El resultado o excepción generada por el salto.
+     */
     @Override
     public Object visitSalto_sentencia(Codex_latinusParser.Salto_sentenciaContext ctx) {
-        String text = ctx.getText();
-        if (text != null && text.contains("interrumpe")) {
-            throw new BreakException();
-        }
-        if (text != null && text.startsWith("reddere")) {
-            Object valorRetorno = null;
-            for (int i = 0; i < ctx.getChildCount(); i++) {
-                ParseTree child = ctx.getChild(i);
-                if (child instanceof Codex_latinusParser.ExpresionContext) {
-                    valorRetorno = visit(child);
-                    break;
-                }
-            }
-            throw new ReturnException(valorRetorno);
-        }
-        return visitChildren(ctx);
+        return controlFlowHandler.handleSaltoSentencia(ctx);
     }
 
+    /**
+     * Evalúa condiciones lógicas compuestas con operadores OR.
+     *
+     * @param ctx Contexto de la condición.
+     * @return Un booleano con el resultado de la evaluación lógica.
+     */
     @Override
     public Object visitCondicion(Codex_latinusParser.CondicionContext ctx) {
         if (ctx.OR() != null) {
@@ -561,6 +551,12 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         return visit(ctx.conjuncion());
     }
 
+    /**
+     * Evalúa conjunciones lógicas compuestas con operadores AND.
+     *
+     * @param ctx Contexto de la conjunción.
+     * @return Booleano con el resultado de la operación.
+     */
     @Override
     public Object visitConjuncion(Codex_latinusParser.ConjuncionContext ctx) {
         if (ctx.AND() != null) {
@@ -573,6 +569,12 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         return visit(ctx.negacion_logica());
     }
 
+    /**
+     * Aplica la negación lógica sobre una expresión booleana.
+     *
+     * @param ctx Contexto de negación.
+     * @return El valor booleano invertido.
+     */
     @Override
     public Object visitNegacion_logica(Codex_latinusParser.Negacion_logicaContext ctx) {
         if (ctx.NEGACION() != null) {
@@ -584,6 +586,12 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         return visit(ctx.primaria_logica());
     }
 
+    /**
+     * Resuelve elementos lógicos primarios, literales booleanos, llamadas o comparaciones relacionales.
+     *
+     * @param ctx Contexto lógico primario.
+     * @return El valor resultante de la evaluación (generalmente boolean o numérico).
+     */
     @Override
     public Object visitPrimaria_logica(Codex_latinusParser.Primaria_logicaContext ctx) {
         if (ctx.VERUM() != null) return true;
@@ -623,6 +631,12 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         return visitChildren(ctx);
     }
 
+    /**
+     * Evalúa expresiones aritméticas u operaciones de concatenación de cadenas.
+     *
+     * @param ctx Contexto de la expresión.
+     * @return El resultado numérico o de texto de la operación.
+     */
     @Override
     public Object visitExpresion(Codex_latinusParser.ExpresionContext ctx) {
         if (ctx.termino().size() == 1) {
@@ -657,6 +671,12 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         return visitChildren(ctx);
     }
 
+    /**
+     * Resuelve los términos individuales dentro de una expresión (variables, números, cadenas, llamadas).
+     *
+     * @param ctx Contexto del término.
+     * @return El valor nativo asociado al término analizado.
+     */
     @Override
     public Object visitTermino(Codex_latinusParser.TerminoContext ctx) {
         if (ctx.VARIABLE() != null) {
@@ -689,6 +709,12 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         return visitChildren(ctx);
     }
 
+    /**
+     * Ejecuta una llamada a función, creando un nuevo ámbito (scope), asignando parámetros y capturando su retorno.
+     *
+     * @param ctx Contexto de la llamada de función.
+     * @return El valor de retorno devuelto por la función ejecutada, o null si no retorna nada.
+     */
     @Override
     public Object visitLlamada_funcion(Codex_latinusParser.Llamada_funcionContext ctx) {
         String funcName = ctx.VARIABLE().getText();
@@ -713,7 +739,7 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         Object resultadoFuncion = null;
         try {
             visit(funcCtx);
-        } catch (ReturnException e) {
+        } catch (ControlFlowHandler.ReturnException e) {
             resultadoFuncion = e.getValue();
         } finally {
             symbolTable.exitScope();
@@ -722,6 +748,12 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         return resultadoFuncion;
     }
 
+    /**
+     * Limpia los delimitadores de comillas en las literales de cadenas de texto.
+     *
+     * @param cad Cadena literal con comillas.
+     * @return Cadena procesada sin comillas iniciales ni finales.
+     */
     private String limpiarCadena(String cad) {
         if (cad.startsWith("\"") && cad.endsWith("\"")) {
             return cad.substring(1, cad.length() - 1);
@@ -729,6 +761,12 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         return cad;
     }
 
+    /**
+     * Instancia una estructura de datos personalizada convirtiéndola en un mapa de atributos y valores.
+     *
+     * @param ctx Contexto de instanciación de estructura.
+     * @return Un mapa que representa el objeto instanciado.
+     */
     @Override
     public Object visitStructura_instanciacion(Codex_latinusParser.Structura_instanciacionContext ctx) {
         Map<String, Object> instancia = new HashMap<>();
@@ -750,20 +788,5 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
             }
         }
         return instancia;
-    }
-
-    private static class ReturnException extends RuntimeException {
-        private final Object value;
-
-        public ReturnException(Object value) {
-            this.value = value;
-        }
-
-        public Object getValue() {
-            return value;
-        }
-    }
-
-    private static class BreakException extends RuntimeException {
     }
 }
