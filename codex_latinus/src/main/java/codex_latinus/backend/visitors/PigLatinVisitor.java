@@ -3,6 +3,8 @@ package codex_latinus.backend.visitors;
 import codex_latinus.Codex_latinusBaseVisitor;
 import codex_latinus.Codex_latinusParser;
 import codex_latinus.backend.errors.CompilationError;
+import codex_latinus.backend.handlers.DeclarationHandler;
+import codex_latinus.backend.handlers.FunctionHandler;
 import codex_latinus.backend.symbols.Symbol;
 import codex_latinus.backend.symbols.SymbolTable;
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -21,6 +23,8 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
 
     private final SymbolTable symbolTable;
     private final List<CompilationError> semanticErrors;
+    private final DeclarationHandler declarationHandler;
+    private final FunctionHandler functionHandler;
     private int loopDepth = 0;
 
     /**
@@ -32,6 +36,8 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
     public PigLatinVisitor(SymbolTable symbolTable, List<CompilationError> semanticErrors) {
         this.symbolTable = symbolTable != null ? symbolTable : new SymbolTable();
         this.semanticErrors = semanticErrors != null ? semanticErrors : new ArrayList<>();
+        this.declarationHandler = new DeclarationHandler(this.symbolTable, this.semanticErrors);
+        this.functionHandler = new FunctionHandler(this.symbolTable, this.semanticErrors);
     }
 
     public SymbolTable getSymbolTable() {
@@ -127,12 +133,14 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
 
     @Override
     public String visitDeclaracion(Codex_latinusParser.DeclaracionContext ctx) {
-        recordDeclarationInTable(ctx);
+        declarationHandler.recordDeclarationInTable(ctx);
         StringBuilder sb = new StringBuilder();
         sb.append(applyPigLatinRule("esto")).append(" ");
 
+        String nombreVar = "";
         if (ctx.VARIABLE() != null && !ctx.VARIABLE().isEmpty()) {
-            sb.append(applyPigLatinRule(ctx.VARIABLE(0).getText())).append(" : ");
+            nombreVar = ctx.VARIABLE(0).getText();
+            sb.append(applyPigLatinRule(nombreVar)).append(" : ");
         }
 
         String tipoDato = "numerus";
@@ -152,16 +160,31 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
 
         sb.append(applyPigLatinRule(tipoDato));
 
-        if (ctx.expresion() != null) {
-            sb.append(" ").append(visit(ctx.expresion()));
-        } else if (ctx.CADENA_TEXTO() != null) {
-            sb.append(" ").append(ctx.CADENA_TEXTO().getText());
-        } else if (ctx.CARACTER() != null) {
-            sb.append(" ").append(ctx.CARACTER().getText());
-        } else if (contextContainsText(ctx, "verum")) {
-            sb.append(" ").append(applyPigLatinRule("verum"));
-        } else if (contextContainsText(ctx, "falsus")) {
-            sb.append(" ").append(applyPigLatinRule("falsus"));
+        Object valorInicial = null;
+        if (!nombreVar.isEmpty()) {
+            Symbol sym = symbolTable.resolve(nombreVar);
+            if (sym != null) {
+                valorInicial = sym.getValue();
+            }
+        }
+
+        if (valorInicial != null) {
+            sb.append(" ").append(valorInicial.toString());
+        } else {
+            if (ctx.expresion() != null) {
+                String exprTrad = visit(ctx.expresion());
+                if (exprTrad != null && !exprTrad.isEmpty()) {
+                    sb.append(" ").append(exprTrad);
+                }
+            } else if (ctx.CADENA_TEXTO() != null) {
+                sb.append(" ").append(ctx.CADENA_TEXTO().getText());
+            } else if (ctx.CARACTER() != null) {
+                sb.append(" ").append(ctx.CARACTER().getText());
+            } else if (contextContainsText(ctx, "verum")) {
+                sb.append(" ").append(applyPigLatinRule("verum"));
+            } else if (contextContainsText(ctx, "falsus")) {
+                sb.append(" ").append(applyPigLatinRule("falsus"));
+            }
         }
 
         sb.append(";");
@@ -170,7 +193,7 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
 
     @Override
     public String visitArreglo_declaracion(Codex_latinusParser.Arreglo_declaracionContext ctx) {
-        recordArrayDeclarationInTable(ctx);
+        declarationHandler.recordArrayDeclarationInTable(ctx);
         return visitChildrenGeneric(ctx);
     }
 
@@ -191,21 +214,12 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
 
     @Override
     public String visitRatio_funcion(Codex_latinusParser.Ratio_funcionContext ctx) {
-        TerminalNode varNode = ctx.VARIABLE();
-        String nombreFunc = (varNode != null) ? varNode.getText() : "funcion";
-        String tipoRetorno = ctx.tipo_dato() != null ? ctx.tipo_dato().getText() : "void";
-        int column = (varNode != null) ? varNode.getSymbol().getCharPositionInLine() : ctx.getStart().getCharPositionInLine();
-
-        return processFunction(nombreFunc, tipoRetorno, ctx, ctx.parametros(), column);
+        return functionHandler.handleRatioFuncion(ctx, this::visitChildrenGeneric);
     }
 
     @Override
     public String visitActio_funcion(Codex_latinusParser.Actio_funcionContext ctx) {
-        TerminalNode varNode = ctx.VARIABLE();
-        String nombreFunc = (varNode != null) ? varNode.getText() : "funcion";
-        int column = (varNode != null) ? varNode.getSymbol().getCharPositionInLine() : ctx.getStart().getCharPositionInLine();
-
-        return processFunction(nombreFunc, "void", ctx, ctx.parametros(), column);
+        return functionHandler.handleActioFuncion(ctx, this::visitChildrenGeneric);
     }
 
     @Override
@@ -503,117 +517,6 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
         if (ctx == null || textToFind == null) return false;
         String fullText = ctx.getText();
         return fullText != null && fullText.contains(textToFind);
-    }
-
-    private String processFunction(String nombreFunc, String tipoRetorno, ParserRuleContext ctx, Codex_latinusParser.ParametrosContext parametrosCtx, int column) {
-        int line = ctx.getStart().getLine();
-        int numParams = 0;
-        List<String> paramTypes = new ArrayList<>();
-
-        if (parametrosCtx != null && parametrosCtx.parametro() != null) {
-            numParams = parametrosCtx.parametro().size();
-            for (Codex_latinusParser.ParametroContext paramCtx : parametrosCtx.parametro()) {
-                if (paramCtx.tipo_dato() != null) {
-                    paramTypes.add(paramCtx.tipo_dato().getText().toLowerCase());
-                } else {
-                    paramTypes.add("desconocido");
-                }
-            }
-        }
-
-        Symbol funcSym = new Symbol(nombreFunc, tipoRetorno, "actio", numParams, paramTypes, 0, symbolTable.getCurrentScope(), line, column);
-        if (!symbolTable.define(funcSym)) {
-            semanticErrors.add(new CompilationError("SEMÁNTICO", "La función '" + nombreFunc + "' ya está declarada.", line, column));
-        }
-
-        symbolTable.enterScope("actio_" + nombreFunc);
-
-        if (parametrosCtx != null && parametrosCtx.parametro() != null) {
-            for (int i = 0; i < parametrosCtx.parametro().size(); i++) {
-                Codex_latinusParser.ParametroContext paramCtx = parametrosCtx.parametro().get(i);
-
-                if (paramCtx.VARIABLE() != null && !paramCtx.VARIABLE().isEmpty()) {
-                    String paramName = paramCtx.VARIABLE(0).getText();
-                    String paramType = paramTypes.get(i);
-
-                    int pLine = paramCtx.getStart().getLine();
-                    int pCol = paramCtx.getStart().getCharPositionInLine();
-                    Symbol paramSym = new Symbol(paramName, paramType, "parametro", symbolTable.getCurrentScope(), pLine, pCol);
-                    symbolTable.define(paramSym);
-                }
-            }
-        }
-
-        String result = visitChildrenGeneric(ctx);
-        symbolTable.exitScope();
-
-        return result;
-    }
-
-    private void recordDeclarationInTable(Codex_latinusParser.DeclaracionContext ctx) {
-        if (ctx.VARIABLE() != null && !ctx.VARIABLE().isEmpty()) {
-            String nameVar = ctx.VARIABLE(0).getText();
-            String dataType = "desconocido";
-
-            if (ctx.tipo_dato() != null) {
-                dataType = ctx.tipo_dato().getText();
-            } else if (ctx.TEXTUM() != null) {
-                dataType = "textum";
-            } else if (ctx.LITTERA() != null) {
-                dataType = "littera";
-            } else if (ctx.VARIABLE().size() > 1) {
-                dataType = ctx.VARIABLE(1).getText();
-            } else if (ctx.expresion() != null) {
-                dataType = getTipoExpresion(ctx.expresion());
-            }
-
-            int line = ctx.VARIABLE(0).getSymbol().getLine();
-            int column = ctx.VARIABLE(0).getSymbol().getCharPositionInLine();
-
-            if (symbolTable.isDeclaredInCurrentScope(nameVar)) {
-                semanticErrors.add(new CompilationError("SEMÁNTICO", "La variable '" + nameVar + "' ya ha sido declarada en este ámbito.", line, column));
-                return;
-            }
-
-            Symbol sym = new Symbol(nameVar, dataType, "variable", symbolTable.getCurrentScope(), line, column);
-
-            if (ctx.expresion() != null) {
-                sym.setValue(ctx.expresion().getText());
-            }
-
-            if (!symbolTable.define(sym)) {
-                semanticErrors.add(new CompilationError("SEMÁNTICO", "El tipo '" + dataType + "' no está registrado.", line, column));
-            }
-        }
-    }
-
-    private void recordArrayDeclarationInTable(Codex_latinusParser.Arreglo_declaracionContext ctx) {
-        if (ctx.VARIABLE() != null && !ctx.VARIABLE().isEmpty()) {
-            String nameVar = ctx.VARIABLE(0).getText();
-            String dataType = ctx.tipo_dato() != null ? ctx.tipo_dato().getText().toLowerCase() : "numerus";
-
-            int size = 0;
-            if (ctx.NUMERO_ENTERO() != null) {
-                try {
-                    size = Integer.parseInt(ctx.NUMERO_ENTERO().getText());
-                } catch (NumberFormatException ignored) {
-                }
-            }
-
-            int line = ctx.VARIABLE(0).getSymbol().getLine();
-            int column = ctx.VARIABLE(0).getSymbol().getCharPositionInLine();
-
-            if (symbolTable.isDeclaredInCurrentScope(nameVar)) {
-                semanticErrors.add(new CompilationError("SEMÁNTICO", "El series '" + nameVar + "' ya ha sido declarado en este ámbito.", line, column));
-                return;
-            }
-
-            Symbol sym = new Symbol(nameVar, dataType, "series", 0, new ArrayList<>(), size, symbolTable.getCurrentScope(), line, column);
-
-            if (!symbolTable.define(sym)) {
-                semanticErrors.add(new CompilationError("SEMÁNTICO", "El tipo de series '" + dataType + "' no está registrado.", line, column));
-            }
-        }
     }
 
     private String visitGenericElement(ParseTree node) {

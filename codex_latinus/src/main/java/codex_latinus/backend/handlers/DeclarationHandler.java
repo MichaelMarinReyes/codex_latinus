@@ -4,6 +4,7 @@ import codex_latinus.Codex_latinusParser;
 import codex_latinus.backend.errors.CompilationError;
 import codex_latinus.backend.symbols.Symbol;
 import codex_latinus.backend.symbols.SymbolTable;
+import org.antlr.v4.runtime.ParserRuleContext;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +22,7 @@ public class DeclarationHandler {
     /**
      * Procesa y registra una declaración de variable estándar en la tabla de símbolos.
      */
-    public void recordDeclarationInTable(Codex_latinusParser.DeclaracionContext ctx, String tipoExpresionIncurrida) {
+    public void recordDeclarationInTable(Codex_latinusParser.DeclaracionContext ctx) {
         if (ctx.VARIABLE() != null && !ctx.VARIABLE().isEmpty()) {
             String nameVar = ctx.VARIABLE(0).getText();
             String dataType = "desconocido";
@@ -34,8 +35,10 @@ public class DeclarationHandler {
                 dataType = "littera";
             } else if (ctx.VARIABLE().size() > 1) {
                 dataType = ctx.VARIABLE(1).getText();
+            } else if (contextContainsText(ctx, "verum") || contextContainsText(ctx, "falsus")) {
+                dataType = "boolean";
             } else if (ctx.expresion() != null) {
-                dataType = tipoExpresionIncurrida;
+                dataType = "numerus";
             }
 
             int line = ctx.VARIABLE(0).getSymbol().getLine();
@@ -50,6 +53,14 @@ public class DeclarationHandler {
 
             if (ctx.expresion() != null) {
                 sym.setValue(ctx.expresion().getText());
+            } else if (ctx.CADENA_TEXTO() != null) {
+                sym.setValue(ctx.CADENA_TEXTO().getText());
+            } else if (ctx.CARACTER() != null) {
+                sym.setValue(ctx.CARACTER().getText());
+            } else if (contextContainsText(ctx, "verum")) {
+                sym.setValue("verum");
+            } else if (contextContainsText(ctx, "falsus")) {
+                sym.setValue("falsus");
             }
 
             if (!symbolTable.define(sym)) {
@@ -88,5 +99,11 @@ public class DeclarationHandler {
                 semanticErrors.add(new CompilationError("SEMÁNTICO", "El tipo de series '" + dataType + "' no está registrado.", line, column));
             }
         }
+    }
+
+    private boolean contextContainsText(ParserRuleContext ctx, String textToFind) {
+        if (ctx == null || textToFind == null) return false;
+        String fullText = ctx.getText();
+        return fullText != null && fullText.contains(textToFind);
     }
 }

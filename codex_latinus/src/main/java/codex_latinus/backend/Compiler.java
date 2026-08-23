@@ -112,6 +112,7 @@ public class Compiler {
         }
 
         if (!compilationErrors.isEmpty()) {
+            System.out.println(lastTraductionResult);
             lastDotCode = "";
             lastTraductionResult = "Se encontraron errores en el análisis. Revisa la tabla de errores.";
             return lastTraductionResult;

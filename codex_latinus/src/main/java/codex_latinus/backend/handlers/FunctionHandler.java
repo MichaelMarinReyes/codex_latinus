@@ -71,7 +71,7 @@ public class FunctionHandler {
             for (int i = 0; i < parametrosCtx.parametro().size(); i++) {
                 Codex_latinusParser.ParametroContext paramCtx = parametrosCtx.parametro().get(i);
 
-                if (paramCtx.VARIABLE() != null) {
+                if (paramCtx.VARIABLE() != null && !paramCtx.VARIABLE().isEmpty()) {
                     String paramName = paramCtx.VARIABLE(0).getText();
                     String paramType = paramTypes.get(i);
 
@@ -83,7 +83,6 @@ public class FunctionHandler {
             }
         }
 
-        // Ejecuta el visitante del cuerpo recibido por parámetro dentro del nuevo ámbito
         String result = bodyVisitor.apply(ctx);
         symbolTable.exitScope();
 
