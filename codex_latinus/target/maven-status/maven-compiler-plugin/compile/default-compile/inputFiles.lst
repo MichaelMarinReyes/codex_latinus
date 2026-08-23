@@ -3,6 +3,10 @@
 /home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/backend/DotGenerator.java
 /home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/backend/errors/CompilationError.java
 /home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/backend/errors/CustomErrorListener.java
+/home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/backend/handlers/ControlFlowHandler.java
+/home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/backend/handlers/DeclarationHandler.java
+/home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/backend/handlers/FunctionHandler.java
+/home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/backend/handlers/LoopHandler.java
 /home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/backend/stack/StackState.java
 /home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/backend/stack/StackVisualizerListener.java
 /home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/backend/symbols/Scope.java
@@ -12,6 +16,7 @@
 /home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/backend/symbols/TypeTable.java
 /home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/backend/visitors/InterpreterVisitor.java
 /home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/backend/visitors/PigLatinVisitor.java
+/home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/backend/visitors/SemanticAnalyzerVisitor.java
 /home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/frontend/EditorPanel.java
 /home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/frontend/ErrorTablePanel.java
 /home/michael/Documentos/2026/Segundo Semestre/Organización de Lenguajes y Compiladores 2/Laboratorio/Práctica1/codex_latinus/src/main/java/codex_latinus/frontend/LineNumberComponent.java
