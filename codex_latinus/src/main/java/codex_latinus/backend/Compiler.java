@@ -36,25 +36,12 @@ public class Compiler {
 
     private String lastParsedCode = null;
     private String lastTraductionResult = "";
+    private String lastHumanResult = ""; // Almacena el resultado humano simulado
 
-    /**
-     * Obtiene la lista unificada de errores de compilación encontrados durante el análisis
-     * (léxicos, sintácticos y semánticos).
-     *
-     * @return Una lista con los objetos {@link CompilationError} detectados.
-     */
     public List<CompilationError> getCompilationErrors() {
         return compilationErrors;
     }
 
-    /**
-     * Parsea el código fuente proporcionado, ejecutando el análisis léxico, sintáctico y semántico.
-     * Asimismo, genera la traducción, el código DOT para el AST y los pasos de la pila.
-     * Si el código es idéntico al último analizado, retorna el resultado almacenado en caché.
-     *
-     * @param code El código fuente en texto plano escrito en Codex Latinus.
-     * @return El resultado de la traducción, o un mensaje de error detallado si la compilación falla.
-     */
     public String parseCode(String code) {
         if (code != null && code.equals(lastParsedCode) && !lastTraductionResult.isEmpty()) {
             return lastTraductionResult;
@@ -67,12 +54,15 @@ public class Compiler {
         lastSemanticVisitor = null;
         lastInterpreterVisitor = null;
         lastStackSteps.clear();
+        lastHumanResult = "";
 
         if (code == null || code.trim().isEmpty()) {
             lastTraductionResult = "";
+            lastHumanResult = "";
             return lastTraductionResult;
         }
 
+        // 1. GENERACIÓN DEL ÁRBOL (AST) Y LÉXICO/SINTÁCTICO
         CharStream input = CharStreams.fromString(code);
 
         Codex_latinusLexer lexer = new Codex_latinusLexer(input);
@@ -89,34 +79,40 @@ public class Compiler {
 
         ParseTree tree = parser.init();
 
-        // Si el listener detectó errores léxicos o sintácticos
         if (errorListener.hasErrors() || !compilationErrors.isEmpty()) {
             lastDotCode = "";
             lastTraductionResult = formatErrorDetails("Se encontraron errores léxicos o sintácticos:");
+            lastHumanResult = lastTraductionResult;
             return lastTraductionResult;
         }
 
         try {
             SymbolTable globalSymbolTable = new SymbolTable();
 
-            // 1. PRIMERO: Análisis Semántico (Llena y valida la tabla de símbolos)
+            // 2. ANÁLISIS SEMÁNTICO
             lastSemanticVisitor = new SemanticAnalyzerVisitor(globalSymbolTable, compilationErrors);
             lastSemanticVisitor.visit(tree);
 
-            // 2. SEGUNDO: Generación / Traducción a Pig Latin utilizando el mismo árbol y tabla poblada
-            lastVisitor = new PigLatinVisitor(globalSymbolTable, compilationErrors);
+            if (!compilationErrors.isEmpty()) {
+                lastDotCode = "";
+                lastTraductionResult = formatErrorDetails("Se encontraron errores en el análisis semántico:");
+                lastHumanResult = lastTraductionResult;
+                return lastTraductionResult;
+            }
+
+            // 3. GENERACIÓN DE PIG LATIN
+            lastVisitor = new PigLatinVisitor(globalSymbolTable);
             String traductionResult = lastVisitor.visit(tree);
             lastTraductionResult = (traductionResult != null) ? traductionResult : "";
 
+            // 4. GENERACIÓN DE TEXTO HUMANO (Utilizando el InterpreterVisitor para simular la salida en consola)
+            InterpreterVisitor humanInterpreter = new InterpreterVisitor(globalSymbolTable, new ArrayList<>());
+            humanInterpreter.visit(tree);
+            lastHumanResult = humanInterpreter.getConsoleOutput();
+
         } catch (Exception e) {
             lastTraductionResult = "Error interno en el proceso de análisis: " + e.getMessage();
-            return lastTraductionResult;
-        }
-
-        // Si se encontraron errores durante el análisis semántico
-        if (!compilationErrors.isEmpty()) {
-            lastDotCode = "";
-            lastTraductionResult = formatErrorDetails("Se encontraron errores en el análisis semántico:");
+            lastHumanResult = lastTraductionResult;
             return lastTraductionResult;
         }
 
@@ -128,9 +124,6 @@ public class Compiler {
         return lastTraductionResult;
     }
 
-    /**
-     * Método auxiliar para formatear la lista de errores de compilación en un String legible.
-     */
     private String formatErrorDetails(String header) {
         StringBuilder sb = new StringBuilder(header + "\n");
         for (CompilationError error : compilationErrors) {
@@ -139,30 +132,20 @@ public class Compiler {
         return sb.toString();
     }
 
-    /**
-     * Devuelve el último texto traducido almacenado en memoria tras un análisis exitoso.
-     */
     public String getTranslatedText() {
         return lastTraductionResult;
     }
 
-    /**
-     * Parsea un nuevo código fuente y devuelve directamente el texto resultante.
-     *
-     * @param code El código fuente a procesar.
-     * @return El texto procesado o traducido.
-     */
+    public String getHumanTranslatedText() {
+        return lastHumanResult;
+    }
+
     public String getTranslatedText(String code) {
         return parseCode(code);
     }
 
     /**
-     * Ejecuta el código fuente utilizando el intérprete automatizado y modularizado ({@link InterpreterVisitor}).
-     * Captura la salida estándar generada durante la ejecución del programa.
-     *
-     * @param code             El código fuente a ejecutar.
-     * @param simulatedInputs  Una lista de valores simulados para las entradas requeridas del programa.
-     * @return Un String que contiene la salida por consola obtenida durante la ejecución.
+     * Ejecuta el código fuente utilizando el intérprete automatizado ({@link InterpreterVisitor}).
      */
     public String executeCode(String code, List<String> simulatedInputs) {
         if (code == null || code.trim().isEmpty()) {
@@ -177,8 +160,6 @@ public class Compiler {
 
         SymbolTable symbolTable = getSymbolTable();
 
-        InterpreterVisitor.setInputs(simulatedInputs);
-
         CharStream input = CharStreams.fromString(code);
         Codex_latinusLexer lexer = new Codex_latinusLexer(input);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -191,10 +172,10 @@ public class Compiler {
         System.setOut(printStream);
 
         try {
-            lastInterpreterVisitor = new InterpreterVisitor(symbolTable, compilationErrors);
-            System.out.println("CÓDIGO HUMANO");
-            System.out.println(lastInterpreterVisitor);
+            // Se instancia correctamente pasando la tabla y la lista de entradas simuladas del frontend
+            lastInterpreterVisitor = new InterpreterVisitor(symbolTable, simulatedInputs);
             lastInterpreterVisitor.visit(tree);
+            lastHumanResult = lastInterpreterVisitor.getConsoleOutput();
         } catch (Exception e) {
             System.out.println("Error en ejecución: " + e.getMessage());
         } finally {
@@ -204,33 +185,15 @@ public class Compiler {
         return baos.toString();
     }
 
-    /**
-     * Ejecuta el código fuente utilizando el intérprete sin entradas simuladas adicionales.
-     *
-     * @param code El código fuente a ejecutar.
-     * @return La salida por consola resultante de la ejecución.
-     */
     public String executeCode(String code) {
         return executeCode(code, new ArrayList<>());
     }
 
-    /**
-     * Parsea el código y recupera el historial de estados de la pila generados.
-     *
-     * @param code El código fuente a analizar.
-     * @return Una lista de objetos {@link StackState} que representan los pasos de la pila.
-     */
     public List<StackState> getStackSteps(String code) {
         parseCode(code);
         return lastStackSteps;
     }
 
-    /**
-     * Método auxiliar privado que recorre el árbol de análisis sintáctico (AST)
-     * utilizando un listener para registrar el historial de estados de la pila.
-     *
-     * @param tree El árbol de análisis sintáctico ({@link ParseTree}).
-     */
     private void generateStackSteps(ParseTree tree) {
         if (tree == null) return;
         StackVisualizerListener listener = new StackVisualizerListener();
@@ -239,36 +202,17 @@ public class Compiler {
         lastStackSteps = listener.getHistory();
     }
 
-    /**
-     * Retorna la lista con los últimos pasos de la pila calculados.
-     *
-     * @return Una lista de {@link StackState}.
-     */
     public List<StackState> getLastStackSteps() {
         return lastStackSteps;
     }
 
-    /**
-     * Obtiene el código en formato DOT correspondiente al último Árbol Sintáctico Abstracto (AST) generado.
-     *
-     * @return Un String con la sintaxis DOT para Graphviz.
-     */
     public String getLastDotCode() {
         return lastDotCode;
     }
 
-    /**
-     * Retorna la tabla de símbolos actual, priorizando la instancia del intérprete,
-     * la del analizador semántico o la del visitor de traducción.
-     *
-     * @return La {@link SymbolTable} activa.
-     */
     public SymbolTable getSymbolTable() {
         if (lastInterpreterVisitor != null && lastInterpreterVisitor.getSymbolTable() != null) {
             return lastInterpreterVisitor.getSymbolTable();
-        }
-        if (lastSemanticVisitor != null && lastSemanticVisitor.getSymbolTable() != null) {
-            return lastSemanticVisitor.getSymbolTable();
         }
         if (lastVisitor != null && lastVisitor.getSymbolTable() != null) {
             return lastVisitor.getSymbolTable();

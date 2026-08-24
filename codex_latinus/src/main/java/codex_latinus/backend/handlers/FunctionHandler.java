@@ -20,44 +20,30 @@ public class FunctionHandler {
         this.semanticErrors = semanticErrors != null ? semanticErrors : new ArrayList<>();
     }
 
-    public String handleRatioFuncion(Codex_latinusParser.Ratio_funcionContext ctx, Function<ParserRuleContext, String> bodyVisitor) {
-        String nombreFunc = ctx.VARIABLE() != null ? ctx.VARIABLE().getText() : "funcion";
-        String tipoRetorno = ctx.tipo_dato() != null ? ctx.tipo_dato().getText() : "void";
-        int column = ctx.VARIABLE() != null ? ctx.VARIABLE().getSymbol().getCharPositionInLine() : ctx.getStart().getCharPositionInLine();
-
-        return (String) processFunctionGeneric(nombreFunc, tipoRetorno, ctx, ctx.parametros(), null, column, c -> bodyVisitor.apply(c));
-    }
-
-    public String handleActioFuncion(Codex_latinusParser.Actio_funcionContext ctx, Function<ParserRuleContext, String> bodyVisitor) {
-        String nombreFunc = ctx.VARIABLE() != null ? ctx.VARIABLE().getText() : "funcion";
-        int column = ctx.VARIABLE() != null ? ctx.VARIABLE().getSymbol().getCharPositionInLine() : ctx.getStart().getCharPositionInLine();
-
-        return (String) processFunctionGeneric(nombreFunc, "void", ctx, ctx.parametros(), null, column, c -> bodyVisitor.apply(c));
-    }
-
     public Object handleRatioFuncion(Codex_latinusParser.Ratio_funcionContext ctx, List<Object> argValues, Function<ParserRuleContext, Object> bodyVisitor) {
-        String nombreFunc = ctx.VARIABLE() != null ? ctx.VARIABLE().getText() : "funcion";
-        String tipoRetorno = ctx.tipo_dato() != null ? ctx.tipo_dato().getText() : "void";
-        int column = ctx.VARIABLE() != null ? ctx.VARIABLE().getSymbol().getCharPositionInLine() : ctx.getStart().getCharPositionInLine();
-
-        return processFunctionGeneric(nombreFunc, tipoRetorno, ctx, ctx.parametros(), argValues, column, bodyVisitor);
+        return processFunction(ctx, ctx.VARIABLE(), ctx.tipo_dato(), ctx.parametros(), "ratio", argValues, bodyVisitor);
     }
 
     public Object handleActioFuncion(Codex_latinusParser.Actio_funcionContext ctx, List<Object> argValues, Function<ParserRuleContext, Object> bodyVisitor) {
-        String nombreFunc = ctx.VARIABLE() != null ? ctx.VARIABLE().getText() : "funcion";
-        int column = ctx.VARIABLE() != null ? ctx.VARIABLE().getSymbol().getCharPositionInLine() : ctx.getStart().getCharPositionInLine();
-
-        return processFunctionGeneric(nombreFunc, "void", ctx, ctx.parametros(), argValues, column, bodyVisitor);
+        return processFunction(ctx, ctx.VARIABLE(), null, ctx.parametros(), "actio", argValues, bodyVisitor);
     }
 
     /**
-     * Lógica central unificada para el manejo de ámbitos y parámetros.
+     * Lógica central unificada para el manejo de funciones, ámbitos y parámetros.
      */
-    /**
-     * Lógica central unificada para el manejo de ámbitos y parámetros.
-     */
-    private Object processFunctionGeneric(String nombreFunc, String tipoRetorno, ParserRuleContext ctx, Codex_latinusParser.ParametrosContext parametrosCtx, List<Object> argValues, int column, Function<ParserRuleContext, Object> bodyVisitor) {
+    private Object processFunction(ParserRuleContext ctx,
+                                   org.antlr.v4.runtime.tree.TerminalNode varNode,
+                                   Codex_latinusParser.Tipo_datoContext tipoCtx,
+                                   Codex_latinusParser.ParametrosContext parametrosCtx,
+                                   String kind,
+                                   List<Object> argValues,
+                                   Function<ParserRuleContext, Object> bodyVisitor) {
+
+        String nombreFunc = varNode != null ? varNode.getText() : "funcion";
+        String tipoRetorno = tipoCtx != null ? tipoCtx.getText().toLowerCase() : (kind.equals("ratio") ? "desconocido" : "void");
         int line = ctx.getStart().getLine();
+        int column = varNode != null ? varNode.getSymbol().getCharPositionInLine() : ctx.getStart().getCharPositionInLine();
+
         int numParams = 0;
         List<String> paramTypes = new ArrayList<>();
 
@@ -72,14 +58,16 @@ public class FunctionHandler {
             }
         }
 
-        Symbol funcSym = new Symbol(nombreFunc, tipoRetorno, "actio", numParams, paramTypes, 0, symbolTable.getCurrentScope(), line, column);
+        // Registrar la función en la tabla de símbolos del ámbito actual (padre)
+        Symbol funcSym = new Symbol(nombreFunc, tipoRetorno, kind, numParams, paramTypes, 0, symbolTable.getCurrentScope(), line, column);
         if (!symbolTable.define(funcSym)) {
             semanticErrors.add(new CompilationError("SEMÁNTICO", "La función '" + nombreFunc + "' ya está declarada.", line, column));
         }
 
-        // Se mantiene el ámbito con el prefijo temático 'actio_'
-        symbolTable.enterScope("actio_" + nombreFunc);
+        // Entrar a un nuevo ámbito exclusivo para la función
+        symbolTable.enterScope(kind + "_" + nombreFunc);
 
+        // Registrar los parámetros dentro del nuevo ámbito local
         if (parametrosCtx != null && parametrosCtx.parametro() != null) {
             for (int i = 0; i < parametrosCtx.parametro().size(); i++) {
                 Codex_latinusParser.ParametroContext paramCtx = parametrosCtx.parametro().get(i);
@@ -87,23 +75,27 @@ public class FunctionHandler {
                 if (paramCtx.VARIABLE() != null && !paramCtx.VARIABLE().isEmpty()) {
                     String paramName = paramCtx.VARIABLE(0).getText();
                     String paramType = paramTypes.get(i);
-
                     int pLine = paramCtx.getStart().getLine();
                     int pCol = paramCtx.getStart().getCharPositionInLine();
-                    Symbol paramSym = new Symbol(paramName, paramType, "parametro", symbolTable.getCurrentScope(), pLine, pCol);
 
-                    if (argValues != null && i < argValues.size()) {
-                        paramSym.setValue(argValues.get(i));
+                    if (symbolTable.isDeclaredInCurrentScope(paramName)) {
+                        semanticErrors.add(new CompilationError("SEMÁNTICO", "El parámetro '" + paramName + "' está duplicado en la función '" + nombreFunc + "'.", pLine, pCol));
+                    } else {
+                        Symbol paramSym = new Symbol(paramName, paramType, "parametro", symbolTable.getCurrentScope(), pLine, pCol);
+                        if (argValues != null && i < argValues.size()) {
+                            paramSym.setValue(argValues.get(i));
+                        }
+                        symbolTable.define(paramSym);
                     }
-
-                    symbolTable.define(paramSym);
                 }
             }
         }
 
         Object result = null;
         try {
-            result = bodyVisitor.apply(ctx);
+            if (bodyVisitor != null) {
+                result = bodyVisitor.apply(ctx);
+            }
         } finally {
             symbolTable.exitScope();
         }
