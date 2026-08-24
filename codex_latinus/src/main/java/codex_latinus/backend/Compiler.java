@@ -73,22 +73,6 @@ public class Compiler {
         } else {
             table = new SymbolTable();
         }
-/*
-        // ===================================================
-        // LOG DE DEPURACIÓN EN EL BACKEND
-        // ===================================================
-        System.out.println("=== [DEBUG BACKEND] Tabla de Símbolos en Compiler ===");
-        if (table.getCurrentScope() != null && table.getCurrentScope().getSymbols() != null) {
-            table.getCurrentScope().getSymbols().forEach((name, symbol) -> {
-                System.out.println("Símbolo Guardado -> Nombre: " + symbol.getName() +
-                        " | Tipo: " + symbol.getType() +
-                        " | Valor: " + symbol.getValue());
-            });
-        } else {
-            System.out.println("El scope actual o los símbolos están en null.");
-        }
-        System.out.println("=====================================================");
-        // ===================================================*/
 
         return table;
     }
@@ -222,7 +206,6 @@ public class Compiler {
         System.setOut(printStream);
 
         try {
-            // Se instancia correctamente pasando la tabla y la lista de entradas simuladas del frontend
             lastInterpreterVisitor = new InterpreterVisitor(symbolTable, simulatedInputs);
             lastInterpreterVisitor.visit(tree);
             lastHumanResult = lastInterpreterVisitor.getConsoleOutput();

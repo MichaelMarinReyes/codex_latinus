@@ -3,6 +3,8 @@ package codex_latinus.frontend;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import javax.swing.JPanel;
 import javax.swing.JTextPane;
 import javax.swing.event.DocumentEvent;
@@ -21,30 +23,37 @@ public class LineNumberComponent extends JPanel {
         setBackground(new Color(230, 230, 230));
         setForeground(new Color(120, 120, 120));
 
-        // Establecer un ancho fijo inicial seguro
-        setPreferredSize(new Dimension(45, 0));
+        updatePreferredSize();
 
         textArea.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
-                updateWidthAndRepaint();
+                updatePreferredSize();
             }
 
             @Override
             public void removeUpdate(DocumentEvent e) {
-                updateWidthAndRepaint();
+                updatePreferredSize();
             }
 
             @Override
             public void changedUpdate(DocumentEvent e) {
-                updateWidthAndRepaint();
+                updatePreferredSize();
+            }
+        });
+
+        textArea.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                updatePreferredSize();
             }
         });
     }
 
-    private void updateWidthAndRepaint() {
-        // Opcional: ajustar el ancho dinámicamente si hay más de 999 líneas, 
-        // pero fuera del ciclo de pintado.
+    private void updatePreferredSize() {
+        int height = Math.max(textArea.getHeight(), textArea.getPreferredSize().height);
+        setPreferredSize(new Dimension(45, height));
+        revalidate();
         repaint();
     }
 
@@ -67,7 +76,5 @@ public class LineNumberComponent extends JPanel {
         } catch (Exception e) {
             // Manejo de excepciones
         }
-
-        // ¡ELIMINADO! Ya no se llama a setPreferredSize aquí dentro.
     }
 }

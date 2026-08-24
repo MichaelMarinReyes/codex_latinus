@@ -28,7 +28,6 @@ public class AssignmentHandler {
         String varName = "";
         Codex_latinusParser.ExpresionContext indexExpr = null;
 
-        // 1. Extraer nombre de la variable y detectar si es un acceso a arreglo con corchetes
         if (ctx.VARIABLE() != null) {
             varName = ctx.VARIABLE().getText();
         } else if (ctx.acceso_miembro() != null) {
@@ -45,14 +44,12 @@ public class AssignmentHandler {
         int line = ctx.getStart().getLine();
         int column = ctx.getStart().getCharPositionInLine();
 
-        // 3. Resolver la variable en la tabla de símbolos
         Symbol sym = symbolTable.resolve(varName);
         if (sym == null) {
             semanticErrors.add(new CompilationError("SEMÁNTICO", "La variable o series '" + varName + "' no ha sido declarada.", line, column));
             return;
         }
 
-        // 4. Verificación estática de límites de arreglos (Bounds Checking)
         if ("series".equals(sym.getCategory()) && esArregloAsignacion) {
             Integer staticIndex = evaluarIndiceConstante(indexExpr);
             if (staticIndex != null) {
@@ -65,7 +62,6 @@ public class AssignmentHandler {
             }
         }
 
-        // 5. Type Checking estricto e Inferencia cubriendo todas las opciones del lado derecho (RHS)
         String tipoValor = "desconocido";
         String textoValor = "";
         boolean rhsPresente = false;
@@ -123,19 +119,16 @@ public class AssignmentHandler {
             return true;
         }
 
-        // Textum solo es compatible con textum
         if (targetType.equals("textum") || valType.equals("textum")) {
             return targetType.equals(valType);
         }
 
-        // Validación de Booleanos
         boolean isTargetBool = targetType.equals("boolean") || targetType.equals("verum") || targetType.equals("falsus");
         boolean isValBool = valType.equals("boolean") || valType.equals("verum") || valType.equals("falsus");
         if (isTargetBool || isValBool) {
             return isTargetBool && isValBool;
         }
 
-        // Jerarquía numérica: 'decimalis' puede aceptar un 'numerus'
         if (targetType.equals("decimalis") && valType.equals("numerus")) {
             return true;
         }

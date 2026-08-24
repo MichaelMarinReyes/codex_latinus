@@ -1,0 +1,705 @@
+@startuml
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+
+package "codex_latinus" {
+
+    package clases_externas {
+        class ParseTree
+        class TerminalNode
+        class ParserRuleContext
+        class ErrorNode
+        class ParseTreeListener
+        class BaseErrorListener
+        class Codex_latinusBaseVisitor
+        class JPanel
+        class JFrame
+        class JTable
+        class JScrollPane
+        class JLabel
+        class JTextPane
+        class JTextArea
+        class JSplitPane
+        class Image
+        class Dimension
+        class Graphics
+        class RuntimeException
+        class FlatArcDarkIJTheme
+        class SwingUtilities
+        class UIManager
+    }
+    
+    class Codex_latinus {
+        + {static} main(args: String[]): void
+    }
+
+    package backend {
+        class Compiler {
+            - lastDotCode: String
+            - compilationErrors: List<CompilationError>
+            - lastVisitor: PigLatinVisitor
+            - lastSemanticVisitor: SemanticAnalyzerVisitor
+            - lastInterpreterVisitor: InterpreterVisitor
+            - lastStackSteps: List<StackState>
+            - lastParsedCode: String
+            - lastTraductionResult: String
+            - lastHumanResult: String
+            + getCompilationErrors(): List<CompilationError>
+            + getStackSteps(code: String): List<StackState>
+            - generateStackSteps(tree: ParseTree): void
+            + getLastStackSteps(): List<StackState>
+            + getLastDotCode(): String
+            + getSymbolTable(): SymbolTable
+            + parseCode(code: String): String
+            - formatErrorDetails(header: String): String
+            + getTranslatedText(): String
+            + getHumanTranslatedText(): String
+            + getTranslatedText(code: String): String
+            + executeCode(code: String, simulatedInputs: List<String>): String
+            + executeCode(code: String): String
+        }
+
+        class DotGenerator {
+            - idCounter: int
+            + generarDot(root: ParseTree): String
+            - recorrerNodo(node: ParseTree, dot: StringBuilder): void
+        }
+
+        package errors {
+            class CompilationError {
+                - type: String
+                - message: String
+                - line: int
+                - column: int
+                + CompilationError(type: String, message: String, line: int, column: int)
+                + getType(): String
+                + getMessage(): String
+                + getLine(): int
+                + getColumn(): int
+                + toString(): String
+            }
+
+            class CustomErrorListener {
+                - errorList: List<CompilationError>
+                + CustomErrorListener(errorList: List<CompilationError>)
+                + syntaxError(recognizer: Recognizer<?, ?>, offendingSymbol: Object, line: int, charPositionInLine: int, msg: String, e: RecognitionException): void
+                + hasErrors(): boolean
+            }
+
+        }
+
+        package handlers {
+            class AssignmentHandler {
+                - symbolTable: SymbolTable
+                - semanticErrors: List<CompilationError>
+                - typeChecker: TypeChecker
+                + AssignmentHandler(symbolTable: SymbolTable, semanticErrors: List<CompilationError>, typeChecker: TypeChecker)
+                + handleAsignacion(ctx: Codex_latinusParser.Asignacion_sentenciaContext): void
+                - evaluarIndiceConstante(exprCtx: Codex_latinusParser.ExpresionContext): Integer
+                - areTypesCompatible(targetType: String, valType: String): boolean
+            }
+
+            class ConditionalHandler {
+                - symbolTable: SymbolTable
+                - semanticErrors: List<CompilationError>
+                - typeChecker: TypeChecker
+                + ConditionalHandler(symbolTable: SymbolTable, semanticErrors: List<CompilationError>, typeChecker: TypeChecker)
+                + handleSi(ctx: Codex_latinusParser.Si_sentenciaContext): void
+                - validarCondicion(condCtx: Codex_latinusParser.CondicionContext, estructuraOrigen: String): void
+                - obtenerTipoCondicion(condCtx: Codex_latinusParser.CondicionContext): String
+                - obtenerTipoConjuncion(conjCtx: Codex_latinusParser.ConjuncionContext): String
+                - obtenerTipoNegacion(negCtx: Codex_latinusParser.Negacion_logicaContext): String
+                - obtenerTipoPrimariaLogica(primCtx: Codex_latinusParser.Primaria_logicaContext): String
+                - esTipoBooleanoEstricto(tipo: String): boolean
+            }
+
+            class ControlFlowHandler {
+                - visitor: InterpreterVisitor
+                - symbolTable: SymbolTable
+                + ControlFlowHandler(visitor: InterpreterVisitor, symbolTable: SymbolTable)
+                + setSymbolTable(symbolTable: SymbolTable): void
+                + handleSaltoSentencia(ctx: Codex_latinusParser.Salto_sentenciaContext): Object
+            }
+
+            class BreakException {
+            }
+
+            class ReturnException {
+                - value: Object
+                + ReturnException(value: Object)
+                + getValue(): Object
+            }
+
+            ControlFlowHandler +-- BreakException
+            ControlFlowHandler +-- ReturnException
+
+            class DeclarationHandler {
+                - symbolTable: SymbolTable
+                - semanticErrors: List<CompilationError>
+                - typeChecker: TypeChecker
+                + DeclarationHandler(symbolTable: SymbolTable, semanticErrors: List<CompilationError>)
+                + recordDeclarationInTable(ctx: Codex_latinusParser.DeclaracionContext): void
+                + recordArrayDeclarationInTable(ctx: Codex_latinusParser.Arreglo_declaracionContext): void
+                + recordLocalDeclarationInTable(ctx: Codex_latinusParser.Declaracion_localContext): void
+                - normalizeBooleanValue(dataType: String, value: Object): Object
+                - contextContainsText(ctx: ParserRuleContext, textToFind: String): boolean
+            }
+
+            class FunctionHandler {
+                - symbolTable: SymbolTable
+                - semanticErrors: List<CompilationError>
+                + FunctionHandler(symbolTable: SymbolTable, semanticErrors: List<CompilationError>)
+                + handleRatioFuncion(ctx: Codex_latinusParser.Ratio_funcionContext, argValues: List<Object>, bodyVisitor: Function<ParserRuleContext, Object>): Object
+                + handleActioFuncion(ctx: Codex_latinusParser.Actio_funcionContext, argValues: List<Object>, bodyVisitor: Function<ParserRuleContext, Object>): Object
+                - processFunction(ctx: ParserRuleContext, varNode: TerminalNode, parametrosCtx: Codex_latinusParser.ParametrosContext, kind: String, argValues: List<Object>, bodyVisitor: Function<ParserRuleContext, Object>): Object
+            }
+
+            class LoopHandler {
+                - loopDepth: int
+                - symbolTable: SymbolTable
+                - semanticErrors: List<CompilationError>
+                - typeChecker: TypeChecker
+                + LoopHandler(symbolTable: SymbolTable, semanticErrors: List<CompilationError>, typeChecker: TypeChecker)
+                + handleCicloDum(ctx: Codex_latinusParser.Ciclo_dumContext, bodyVisitor: Function<ParserRuleContext, Object>): Object
+                + handleCicloFacere(ctx: Codex_latinusParser.Ciclo_facereContext, bodyVisitor: Function<ParserRuleContext, Object>): Object
+                + handleCicloPer(ctx: Codex_latinusParser.Ciclo_perContext, bodyVisitor: Function<ParserRuleContext, Object>): Object
+                - validarCondicionCiclo(condCtx: Codex_latinusParser.CondicionContext, tipoCiclo: String): void
+                - evaluarCondicionRecursiva(condCtx: Codex_latinusParser.CondicionContext): boolean
+                - evaluarConjuncion(conjCtx: Codex_latinusParser.ConjuncionContext): boolean
+                - evaluarNegacion(negCtx: Codex_latinusParser.Negacion_logicaContext): boolean
+                - evaluarPrimariaLogica(primCtx: Codex_latinusParser.Primaria_logicaContext): boolean
+                - validarInicializacionPer(initCtx: Codex_latinusParser.Inicializacion_perContext): void
+                + handleSaltoSentencia(ctx: Codex_latinusParser.Salto_sentenciaContext): Object
+                + getLoopDepth(): int
+            }
+
+            class BreakException {
+            }
+
+            class ContinueException {
+            }
+
+            LoopHandler +-- BreakException
+            LoopHandler +-- ContinueException
+
+            class StructHandler {
+                - symbolTable: SymbolTable
+                - semanticErrors: List<CompilationError>
+                - typeChecker: TypeChecker
+                - structRegistry: Map<String, StructDefinition>
+                + StructHandler(symbolTable: SymbolTable, semanticErrors: List<CompilationError>, typeChecker: TypeChecker)
+                + getStructRegistry(): Map<String, StructDefinition>
+                + handleStructDef(ctx: Codex_latinusParser.Structura_defContext): void
+                - parsearMiembroStructura(miembro: Codex_latinusParser.Miembro_structuraContext, structDef: StructDefinition): void
+                + validarInstanciacionStruct(structTypeName: String, instCtx: Codex_latinusParser.Structura_instanciacionContext, line: int, column: int): void
+                - validarAtributoValor(field: StructField, atribCtx: Codex_latinusParser.Atributo_asignacionContext): void
+                - esTipoCompatible(targetType: String, valType: String): boolean
+            }
+
+            class StructField {
+                - name: String
+                - type: String
+                - isSeries: boolean
+                - arraySize: int
+                + StructField(name: String, type: String, isSeries: boolean, arraySize: int)
+                + getName(): String
+                + getType(): String
+                + isSeries(): boolean
+                + getArraySize(): int
+            }
+
+            class StructDefinition {
+                - name: String
+                - fields: Map<String, StructField>
+                + StructDefinition(name: String)
+                + getName(): String
+                + getFields(): Map<String, StructField>
+                + addField(field: StructField): boolean
+            }
+
+            StructHandler +-- StructField
+            StructHandler +-- StructDefinition
+        }
+
+        package stack {
+            class StackState {
+                - stepId: int
+                - stackElements: List<String>
+                - operation: String
+                + StackState(stepId: int, stackElements: List<String>, operation: String)
+                + getStepId(): int
+                + setStepId(stepId: int): void
+                + getStackElements(): List<String>
+                + setStackElements(stackElements: List<String>): void
+                + getOperation(): String
+                + setOperation(operation: String): void
+                + toString(): String
+            }
+
+            class StackVisualizerListener {
+                - history: List<StackState>
+                - internalStack: Stack<String>
+                - stepCounter: int
+                + getHistory(): List<StackState>
+                - recordState(operation: String): void
+                + enterEveryRule(ctx: ParserRuleContext): void
+                + exitEveryRule(ctx: ParserRuleContext): void
+                + visitTerminal(node: TerminalNode): void
+                + visitErrorNode(node: ErrorNode): void
+            }
+        }
+
+        package symbols {
+            class Scope {
+                - symbols: Map<String, Symbol>
+                - parent: Scope
+                - scopeName: String
+                + Scope(parent: Scope, scopeName: String)
+                + define(symbol: Symbol): boolean
+                + resolve(name: String): Symbol
+                + getParent(): Scope
+                + getScopeName(): String
+                + getSymbols(): Map<String, Symbol>
+            }
+
+            class Symbol {
+                - name: String
+                - type: String
+                - category: String
+                - numParameters: int
+                - parameterTypes: List<String>
+                - size: int
+                - scope: Scope
+                - line: int
+                - column: int
+                - value: Object
+                + Symbol(name: String, type: String, category: String, numParameters: int, parameterTypes: List<String>, size: int, scope: Scope, line: int, column: int)
+                + Symbol(name: String, type: String, category: String, numParameters: int, scope: Scope, line: int, column: int)
+                + Symbol(name: String, type: String, category: String, scope: Scope, line: int, column: int)
+                + getName(): String
+                + getType(): String
+                + setType(type: String): void
+                + getCategory(): String
+                + getNumParameters(): int
+                + getParameterTypes(): List<String>
+                + getSize(): int
+                + getScope(): Scope
+                + getLine(): int
+                + getColumn(): int
+                + getValue(): Object
+                + setValue(value: Object): void
+            }
+
+            class SymbolTable {
+                - typeTable: TypeTable
+                - currentScope: Scope
+                + SymbolTable()
+                + enterScope(name: String): void
+                + exitScope(): void
+                + define(symbol: Symbol): boolean
+                + resolve(name: String): Symbol
+                + isDeclaredInCurrentScope(name: String): boolean
+                + updateSymbolValue(name: String, newValue: Object, valueType: String): boolean
+                + updateSymbolType(name: String, newType: String): boolean
+                + getCurrentScope(): Scope
+                + getTypeTable(): TypeTable
+            }
+
+            class TypeInfo {
+                - name: String
+                - sizeInBytes: int
+                + TypeInfo(name: String, sizeInBytes: int)
+                + getName(): String
+                + getSizeInBytes(): int
+            }
+
+            class TypeTable {
+                - types: Map<String, TypeInfo>
+                + TypeTable()
+                - registrarTiposPrimitivos(): void
+                + defineType(typeInfo: TypeInfo): boolean
+                + resolveType(name: String): TypeInfo
+                + exists(name: String): boolean
+                + areTypesCompatible(targetType: String, sourceType: String): boolean
+                {static} + parseBooleanValue(textValue: String): Boolean
+                {static} + toCodexBoolean(javaBoolean: boolean): String
+            }
+        }
+
+        package utils {
+            class TypeChecker {
+                - symbolTable: SymbolTable
+                - semanticErrors: List<CompilationError>
+                + TypeChecker(symbolTable: SymbolTable, semanticErrors: List<CompilationError>)
+                + getTipoExpresion(ctx: Codex_latinusParser.ExpresionContext): String
+                - contieneOperadoresLogicosOComparacion(ctx: Codex_latinusParser.ExpresionContext): boolean
+                + getTipoTermino(termino: Codex_latinusParser.TerminoContext): String
+                + getJerarquia(tipo: String): int
+                + getTipoByJerarquia(j: int): String
+            }
+        }
+
+        package visitors {
+            class InterpreterVisitor {
+                - symbolTable: SymbolTable
+                - mockInputs: Queue<String>
+                - consoleOutput: StringBuilder
+                - functionRegistry: Map<String, ParserRuleContext>
+                - functionHandler: FunctionHandler
+                + InterpreterVisitor(symbolTable: SymbolTable, predefinedInputs: List<String>)
+                + getConsoleOutput(): String
+                + getSymbolTable(): SymbolTable
+                + visitImprimir_sentencia(ctx: Codex_latinusParser.Imprimir_sentenciaContext): Object
+                + visitLeer_sentencia(ctx: Codex_latinusParser.Leer_sentenciaContext): Object
+                - parseValueByType(text: String, type: String): Object
+                + visitAsignacion_sentencia(ctx: Codex_latinusParser.Asignacion_sentenciaContext): Object
+                + visitDeclaracion(ctx: Codex_latinusParser.DeclaracionContext): Object
+                - assignDefaultValue(sym: Symbol): void
+                + visitExpresion(ctx: Codex_latinusParser.ExpresionContext): Object
+                + visitTermino(ctx: Codex_latinusParser.TerminoContext): Object
+                - evaluateArithmetic(left: Object, op: String, right: Object): Object
+                - parseToDouble(obj: Object): double
+                + visitRatio_funcion(ctx: Codex_latinusParser.Ratio_funcionContext): Object
+                + visitActio_funcion(ctx: Codex_latinusParser.Actio_funcionContext): Object
+                + visitLlamada_funcion(ctx: Codex_latinusParser.Llamada_funcionContext): Object
+                ~ findBlockContext(funcCtx: ParserRuleContext): ParserRuleContext
+                + visitReddere_sentencia(ctx: Codex_latinusParser.Reddere_sentenciaContext): Object
+                + visitDeclaracion_local(ctx: Codex_latinusParser.Declaracion_localContext): Object
+            }
+
+            class PigLatinVisitor {
+                - symbolTable: SymbolTable
+                + PigLatinVisitor(symbolTable: SymbolTable)
+                + getSymbolTable(): SymbolTable
+                # aggregateResult(aggregate: String, nextResult: String): String
+                + visitInit(ctx: Codex_latinusParser.InitContext): String
+                + visitCodex_latinus(ctx: Codex_latinusParser.Codex_latinusContext): String
+                + visitVariables(ctx: Codex_latinusParser.VariablesContext): String
+                + visitMunera(ctx: Codex_latinusParser.MuneraContext): String
+                + visitMaior(ctx: Codex_latinusParser.MaiorContext): String
+                + visitImprimir_sentencia(ctx: Codex_latinusParser.Imprimir_sentenciaContext): String
+                + visitLeer_sentencia(ctx: Codex_latinusParser.Leer_sentenciaContext): String
+                + visitTerminal(node: TerminalNode): String
+                + visitChildren(node: ParserRuleContext): String
+                - isAlphabeticWord(texto: String): boolean
+                - applyPigLatinRule(palabra: String): String
+            }
+
+            class SemanticAnalyzerVisitor {
+                - symbolTable: SymbolTable
+                - semanticErrors: List<CompilationError>
+                - functionHandler: FunctionHandler
+                - loopHandler: LoopHandler
+                - declarationHandler: DeclarationHandler
+                - typeChecker: TypeChecker
+                - assignmentHandler: AssignmentHandler
+                - structHandler: StructHandler
+                - currentFunctionReturnType: String
+                - hasReturned: boolean
+                - conditionalHandler: ConditionalHandler
+                + SemanticAnalyzerVisitor(symbolTable: SymbolTable, semanticErrors: List<CompilationError>)
+                + visitDeclaracion(ctx: Codex_latinusParser.DeclaracionContext): Object
+                + visitDeclaracion_local(ctx: Codex_latinusParser.Declaracion_localContext): Object
+                + visitArreglo_declaracion(ctx: Codex_latinusParser.Arreglo_declaracionContext): Object
+                + visitAsignacion_sentencia(ctx: Codex_latinusParser.Asignacion_sentenciaContext): Object
+                + visitStructura_def(ctx: Codex_latinusParser.Structura_defContext): Object
+                + visitSi_sentencia(ctx: Codex_latinusParser.Si_sentenciaContext): Object
+                + visitCiclo_dum(ctx: Codex_latinusParser.Ciclo_dumContext): Object
+                + visitCiclo_facere(ctx: Codex_latinusParser.Ciclo_facereContext): Object
+                + visitCiclo_per(ctx: Codex_latinusParser.Ciclo_perContext): Object
+                + visitSalto_sentencia(ctx: Codex_latinusParser.Salto_sentenciaContext): Object
+                + visitRatio_funcion(ctx: Codex_latinusParser.Ratio_funcionContext): Object
+                + visitActio_funcion(ctx: Codex_latinusParser.Actio_funcionContext): Object
+                + visitReddere_sentencia(ctx: Codex_latinusParser.Reddere_sentenciaContext): Object
+                + visitLeer_sentencia(ctx: Codex_latinusParser.Leer_sentenciaContext): Object
+                + visitImprimir_sentencia(ctx: Codex_latinusParser.Imprimir_sentenciaContext): Object
+            }
+        }
+    }
+
+    package frontend {
+        class EditorPanel {
+            - codeTextArea: JTextPane
+            - pigLatinConsole: JTextArea
+            - executionConsole: JTextArea
+            - consoleTabbedPane: JTabbedPane
+            - statusLabel: JLabel
+            - compileButton: JButton
+            - lineNumberComponent: LineNumberComponent
+            - compiler: Compiler
+            - result: String
+            - isUpdatingHighlight: boolean
+            - colorSecciones: Color
+            - colorKeywords: Color
+            - colorTipos: Color
+            - colorCadenas: Color
+            - colorComentarios: Color
+            + EditorPanel()
+            # initComponents(): void
+            + getCodeText(): String
+            + setCodeText(text: String): void
+            + getResult(): String
+            + setResult(text: String): void
+            + setConsoleTextArea(text: String): void
+            + printToConsole(text: String): void
+            - initCustomEditor(): void
+            - inicializarColores(): void
+            - triggerHighlight(): void
+            - applySyntaxHighlighting(): void
+            - coloringRegex(doc: StyledDocument, text: String, regex: String, color: Color, bold: boolean): void
+            - compileButtonActionPerformed(evt: ActionEvent): void
+            + clearConsole(): void
+            + getSymbolTable(): SymbolTable
+            + getCompilationErrors(): List<CompilationError>
+            + getLastDotCode(): String
+            + getLastStackSteps(): List<StackState>
+        }
+
+        class ErrorTablePanel {
+            - errorTable: JTable
+            - tableModel: DefaultTableModel
+            - scrollPane: JScrollPane
+            - emptyMessageLabel: JLabel
+            + ErrorTablePanel()
+            # initComponents(): void
+            - initCustomComponents(): void
+            + loadErrors(errors: List<CompilationError>): void
+        }
+
+        class LineNumberComponent {
+            - textArea: JTextPane
+            + LineNumberComponent(textArea: JTextPane)
+            - updateWidthAndRepaint(): void
+            # paintComponent(g: Graphics): void
+        }
+
+        class MainWindow {
+            - {static} navText: String
+            - editorPanel: EditorPanel
+            - compiler: Compiler
+            - treePanel: ParserTreePanel
+            - stackVisualizerPanel: StackVisualizerPanel
+            + MainWindow()
+            # initComponents(): void
+            - newFileButtonActionPerformed(evt: ActionEvent): void
+            - openFileButtonActionPerformed(evt: ActionEvent): void
+            - astButtonActionPerformed(evt: ActionEvent): void
+            - symbolTableButtonActionPerformed(evt: ActionEvent): void
+            - lexerErrorButtonActionPerformed(evt: ActionEvent): void
+            - sintaxErrorButton1ActionPerformed(evt: ActionEvent): void
+            - semanticErrorButton1ActionPerformed(evt: ActionEvent): void
+            - stackButtonActionPerformed(evt: ActionEvent): void
+            - editTextButtonActionPerformed(evt: ActionEvent): void
+            - saveFileButtonActionPerformed(evt: ActionEvent): void
+            - paintPanel(panel: JPanel): void
+            - initStyles(): void
+            - navText(optionMenu: String): void
+            - initialPanel(): void
+            - collectSymbolsRecursive(scope: Scope, list: List<Symbol>): void
+            - saveFilesAction(): boolean
+        }
+
+        class ParserTreePanel {
+            - imagePanel: ZoomableImagePanel
+            - scrollPane: JScrollPane
+            - originalImage: Image
+            - zoomFactor: double
+            - messageLabel: JLabel
+            + ParserTreePanel()
+            # initComponents(): void
+            - initCustomComponents(): void
+            + renderGraph(dotCode: String): void
+        }
+
+        class ZoomableImagePanel {
+            # paintComponent(g: Graphics): void
+            + getPreferredSize(): Dimension
+        }
+
+        class StackVisualizerPanel {
+            - stackStates: List<StackState>
+            - stackDrawPanel: JPanel
+            - logTextArea: JTextArea
+            - splitPane: JSplitPane
+            + StackVisualizerPanel()
+            # initComponents(): void
+            - initCustomComponents(): void
+            + loadStates(states: List<StackState>): void
+            - updateLogs(): void
+            - drawAllSteps(g: Graphics): void
+        }
+
+        class SymbolTablePanel {
+            - table: JTable
+            - tableModel: DefaultTableModel
+            + SymbolTablePanel()
+            # initComponents(): void
+            - initTableComponents(): void
+            + loadSymbols(symbols: List<Symbol>, typeTable: TypeTable): void
+            + loadSymbols(symbols: List<Symbol>): void
+        }
+    }
+}
+
+Codex_latinus .right.> MainWindow
+Codex_latinus .right.> FlatArcDarkIJTheme
+Codex_latinus .right.> SwingUtilities
+Codex_latinus ..> UIManager
+
+Compiler -up-> CompilationError
+Compiler --> StackState
+Compiler --> SymbolTable
+Compiler --> PigLatinVisitor
+Compiler --> SemanticAnalyzerVisitor 
+Compiler --> InterpreterVisitor
+Compiler --> DotGenerator
+Compiler --> CustomErrorListener
+
+DotGenerator ..> ParseTree
+DotGenerator ..> TerminalNode
+
+CustomErrorListener --|> BaseErrorListener
+CustomErrorListener --> CompilationError
+
+AssignmentHandler -up-> SymbolTable
+AssignmentHandler -up-> CompilationError
+AssignmentHandler -up-> TypeChecker
+AssignmentHandler .up.> Symbol
+AssignmentHandler .up.> Codex_latinusParser
+
+ConditionalHandler -up-> SymbolTable
+ConditionalHandler -left-> CompilationError
+ConditionalHandler -left-> TypeChecker
+ConditionalHandler .left.> Symbol
+ConditionalHandler .down.> Codex_latinusParser
+
+BreakException --|> RuntimeException
+ReturnException --|> RuntimeException
+ControlFlowHandler --> InterpreterVisitor
+ControlFlowHandler --> SymbolTable
+ControlFlowHandler ..> Codex_latinusParser
+
+DeclarationHandler --> SymbolTable
+DeclarationHandler --> CompilationError
+DeclarationHandler --> TypeChecker
+DeclarationHandler ..> Symbol
+DeclarationHandler ..> ParserRuleContext
+
+FunctionHandler --> SymbolTable
+FunctionHandler --> CompilationError
+FunctionHandler ..> Symbol
+FunctionHandler ..> ParserRuleContext
+FunctionHandler ..> TerminalNode
+
+BreakException --|> RuntimeException 
+ContinueException --|> RuntimeException
+LoopHandler --> SymbolTable
+LoopHandler --> CompilationError
+LoopHandler --> TypeChecker
+LoopHandler ..> Symbol
+LoopHandler ..> Codex_latinusParser
+
+StructHandler --> SymbolTable
+StructHandler --> CompilationError
+StructHandler --> TypeChecker 
+StructHandler --> StructDefinition 
+StructDefinition --> StructField 
+StructHandler ..> Codex_latinusParser
+
+StackVisualizerListener ..|> ParseTreeListener
+StackVisualizerListener --> StackState
+StackVisualizerListener ..> ParserRuleContext
+StackVisualizerListener ..> TerminalNode
+StackVisualizerListener ..> ErrorNode
+
+Scope --> Symbol
+Scope --> Scope
+
+Symbol --> Scope
+
+SymbolTable --> TypeTable
+SymbolTable --> Scope
+SymbolTable ..> Symbol
+
+
+TypeTable --> TypeInfo
+
+TypeChecker --> SymbolTable
+TypeChecker --> CompilationError
+TypeChecker ..> Symbol
+TypeChecker ..> Codex_latinusParser
+
+InterpreterVisitor --|> Codex_latinusBaseVisitor
+InterpreterVisitor --> SymbolTable
+InterpreterVisitor --> FunctionHandler
+InterpreterVisitor ..> Symbol
+InterpreterVisitor ..> ParserRuleContext
+InterpreterVisitor ..> Codex_latinusParser
+
+PigLatinVisitor --|> Codex_latinusBaseVisitor
+PigLatinVisitor --> SymbolTable
+PigLatinVisitor ..> Codex_latinusParser
+PigLatinVisitor ..> ParserRuleContext
+PigLatinVisitor ..> ParseTree
+PigLatinVisitor ..> TerminalNode
+
+SemanticAnalyzerVisitor --|> Codex_latinusBaseVisitor
+SemanticAnalyzerVisitor --> SymbolTable
+SemanticAnalyzerVisitor --> CompilationError
+SemanticAnalyzerVisitor --> FunctionHandler
+SemanticAnalyzerVisitor --> LoopHandler
+SemanticAnalyzerVisitor --> DeclarationHandler
+SemanticAnalyzerVisitor --> TypeChecker
+SemanticAnalyzerVisitor --> AssignmentHandler
+SemanticAnalyzerVisitor --> StructHandler
+SemanticAnalyzerVisitor --> ConditionalHandler
+SemanticAnalyzerVisitor ..> Symbol
+SemanticAnalyzerVisitor ..> Codex_latinusParser
+
+EditorPanel --|> JPanel
+EditorPanel --> Compiler
+EditorPanel --> LineNumberComponent
+EditorPanel ..> SymbolTable
+EditorPanel ..> CompilationError
+EditorPanel ..> StackState
+
+ErrorTablePanel --|> JPanel
+ErrorTablePanel ..> CompilationError
+
+LineNumberComponent --|> JPanel
+LineNumberComponent --> JTextPane
+
+MainWindow --|> JFrame
+MainWindow --> EditorPanel
+MainWindow --> Compiler
+MainWindow --> ParserTreePanel
+MainWindow --> StackVisualizerPanel
+MainWindow ..> SymbolTablePanel
+MainWindow ..> ErrorTablePanel
+MainWindow ..> SymbolTable
+MainWindow ..> Scope
+MainWindow ..> Symbol
+MainWindow ..> CompilationError
+MainWindow ..> StackState
+
+ParserTreePanel +-- ZoomableImagePanel
+ParserTreePanel --|> JPanel
+ZoomableImagePanel --|> JPanel
+ParserTreePanel --> ZoomableImagePanel
+ParserTreePanel ..> Image
+ParserTreePanel ..> JLabel
+ParserTreePanel ..> JScrollPane
+ZoomableImagePanel ..> Graphics
+ZoomableImagePanel ..> Dimension
+
+StackVisualizerPanel --|> JPanel
+StackVisualizerPanel --> StackState
+StackVisualizerPanel ..> JTextArea
+StackVisualizerPanel ..> JSplitPane
+StackVisualizerPanel ..> Graphics
+
+SymbolTablePanel --|> JPanel
+SymbolTablePanel ..> Symbol
+SymbolTablePanel ..> TypeTable
+
+@enduml

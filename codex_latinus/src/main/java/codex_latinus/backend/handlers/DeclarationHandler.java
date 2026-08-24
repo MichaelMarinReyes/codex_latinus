@@ -124,8 +124,6 @@ public class DeclarationHandler {
                 dataType = "textum";
             } else if (ctx.LITTERA() != null) {
                 dataType = "littera";
-            } else if (ctx.VARIABLE().size() > 1) {
-                dataType = ctx.VARIABLE(1).getText();
             } else if (ctx.expresion() != null) {
                 dataType = typeChecker.getTipoExpresion(ctx.expresion());
             }
@@ -139,13 +137,6 @@ public class DeclarationHandler {
             }
 
             Symbol sym = new Symbol(nameVar, dataType, "variable", symbolTable.getCurrentScope(), line, column);
-
-            Object initialValue = null;
-            if (ctx.expresion() != null) {
-                initialValue = ctx.expresion().getText();
-            }
-
-            sym.setValue(normalizeBooleanValue(dataType, initialValue));
 
             if (!symbolTable.define(sym)) {
                 semanticErrors.add(new CompilationError("SEMÁNTICO", "El tipo '" + dataType + "' no está registrado.", line, column));
