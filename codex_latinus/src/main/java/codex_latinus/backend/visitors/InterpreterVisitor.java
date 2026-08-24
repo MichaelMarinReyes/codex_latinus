@@ -16,8 +16,8 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
     private final Queue<String> mockInputs;
     private final StringBuilder consoleOutput;
     private final Map<String, ParserRuleContext> functionRegistry = new HashMap<>();
-    private final FunctionHandler functionHandler;
     private final Map<String, List<String>> structBlueprints = new HashMap<>();
+    private final FunctionHandler functionHandler;
 
     public InterpreterVisitor(SymbolTable symbolTable, List<String> predefinedInputs) {
         this.symbolTable = symbolTable != null ? symbolTable : new SymbolTable();
@@ -41,7 +41,6 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
             ParseTree child = ctx.getChild(i);
             String text = child.getText();
 
-            // Ignorar tokens de sintaxis de impresión
             if (text.equals(">>") || text.equals(";")) {
                 continue;
             }
@@ -131,30 +130,74 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
             Symbol sym = symbolTable.resolve(varName);
             if (sym != null && evaluatedValue != null) {
                 sym.setValue(evaluatedValue);
+            } else if (sym == null) {
+                throw new RuntimeException("Error en línea " + ctx.getStart().getLine() + ": La variable '" + varName + "' no ha sido declarada.");
             }
-        }
-        else if (ctx.acceso_miembro() != null) {
+        } else if (ctx.acceso_miembro() != null) {
             Codex_latinusParser.Acceso_miembroContext accCtx = ctx.acceso_miembro();
             if (accCtx.VARIABLE(0) != null) {
                 String varName = accCtx.VARIABLE(0).getText();
                 Symbol sym = symbolTable.resolve(varName);
 
-                if (sym != null && sym.getValue() instanceof List) {
-                    @SuppressWarnings("unchecked")
-                    List<Object> list = (List<Object>) sym.getValue();
-
+                if (sym != null && sym.getValue() != null) {
+                    Object container = sym.getValue();
+                    Object lastKey = null;
+                    boolean isLastIndexList = false;
 
                     for (int i = 1; i < accCtx.getChildCount(); i++) {
                         ParseTree child = accCtx.getChild(i);
-                        if (child.getText().equals("[")) {
+                        String text = child.getText();
+
+                        if (text.equals("[")) {
                             ParseTree exprChild = accCtx.getChild(i + 1);
                             Object indexObj = visit(exprChild);
                             int index = parseToInt(indexObj);
 
-                            if (index >= 0 && index < list.size()) {
-                                list.set(index, evaluatedValue);
+                            if (i + 2 >= accCtx.getChildCount() - 1) {
+                                lastKey = index;
+                                isLastIndexList = true;
+                                break;
+                            } else {
+                                if (container instanceof List) {
+                                    container = ((List<?>) container).get(index);
+                                }
                             }
-                            break;
+                            i += 2;
+                        } else if (text.equals(".")) {
+                            ParseTree fieldChild = accCtx.getChild(i + 1);
+                            if (fieldChild != null) {
+                                String fieldName = fieldChild.getText();
+
+                                if (i + 1 >= accCtx.getChildCount() - 1) {
+                                    lastKey = fieldName;
+                                    isLastIndexList = false;
+                                    break;
+                                } else {
+                                    if (container instanceof Map) {
+                                        @SuppressWarnings("unchecked")
+                                        Map<String, Object> map = (Map<String, Object>) container;
+                                        container = map.get(fieldName);
+                                    }
+                                }
+                            }
+                            i += 1;
+                        }
+                    }
+
+                    if (container != null && lastKey != null) {
+                        if (isLastIndexList && container instanceof List) {
+                            @SuppressWarnings("unchecked")
+                            List<Object> list = (List<Object>) container;
+                            int idx = (Integer) lastKey;
+                            if (idx >= 0 && idx < list.size()) {
+                                list.set(idx, evaluatedValue);
+                            } else {
+                                throw new RuntimeException("Error en línea " + ctx.getStart().getLine() + ": Índice fuera de límites en arreglo.");
+                            }
+                        } else if (!isLastIndexList && container instanceof Map) {
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> map = (Map<String, Object>) container;
+                            map.put((String) lastKey, evaluatedValue);
                         }
                     }
                 }
@@ -244,7 +287,7 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
     }
 
     // =========================================================================
-    // MÉTODOS FALTANTES PARA EVALUAR EXPRESIONES Y TÉRMINOS
+    // MÉTODOS PARA EVALUAR EXPRESIONES Y TÉRMINOS
     // =========================================================================
 
     @Override
@@ -306,7 +349,10 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         if (ctx.VARIABLE() != null) {
             String varName = ctx.VARIABLE().getText();
             Symbol sym = symbolTable.resolve(varName);
-            return sym != null ? sym.getValue() : null;
+            if (sym == null) {
+                throw new RuntimeException("Error en línea " + ctx.getStart().getLine() + ": La variable '" + varName + "' no ha sido declarada.");
+            }
+            return sym.getValue();
         }
         if (ctx.acceso_miembro() != null) {
             return visit(ctx.acceso_miembro());
@@ -440,19 +486,16 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         // 3. Delegar la ejecución ejecutando secuencialmente el cuerpo de la función
         if (funcCtx instanceof Codex_latinusParser.Ratio_funcionContext ratioCtx) {
             resultadoFuncion = functionHandler.handleRatioFuncion(ratioCtx, argValues, (bodyCtx) -> {
-                // A. Visitar las variables locales para que existan en el ámbito y se inicialicen
                 if (ratioCtx.variables_locales() != null) {
                     visit(ratioCtx.variables_locales());
                 }
 
-                // B. Ejecutar cada una de las sentencias internas del cuerpo de la función
                 if (ratioCtx.sentencia() != null) {
                     for (Codex_latinusParser.SentenciaContext sent : ratioCtx.sentencia()) {
                         visit(sent);
                     }
                 }
 
-                // C. Visitar la sentencia reddere y capturar el valor real evaluado
                 if (ratioCtx.reddere_sentencia() != null) {
                     return visit(ratioCtx.reddere_sentencia());
                 }
@@ -472,16 +515,9 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
             });
         }
 
-        // --- [DEBUG BACKEND] AQUÍ VES EL VALOR ANTES DE SER ASIGNADO ---
-        System.out.println("=== [DEBUG BACKEND] Función '" + funcName + "' retorna el valor: " + resultadoFuncion + " ===");
-
         return resultadoFuncion;
     }
 
-    /**
-     * Método auxiliar para localizar el bloque de instrucciones interno
-     * sin importar cómo se llame la regla en la gramática (.g4).
-     */
     ParserRuleContext findBlockContext(ParserRuleContext funcCtx) {
         for (int i = funcCtx.getChildCount() - 1; i >= 0; i--) {
             ParseTree child = funcCtx.getChild(i);
@@ -498,12 +534,7 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
     @Override
     public Object visitReddere_sentencia(Codex_latinusParser.Reddere_sentenciaContext ctx) {
         if (ctx.expresion() != null) {
-            Object valorRetornado = visit(ctx.expresion());
-
-            // --- [DEBUG BACKEND] AQUÍ VES EL VALOR DENTRO DE LA FUNCIÓN ---
-            System.out.println("=== [DEBUG BACKEND] Sentencia REDDERE evaluó: " + valorRetornado + " ===");
-
-            return valorRetornado;
+            return visit(ctx.expresion());
         }
         return null;
     }
@@ -596,12 +627,20 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
     private Object getDefaultValueForType(String tipo) {
         if (tipo == null) return 0;
         switch (tipo.toLowerCase()) {
-            case "numerus": return 0;
-            case "decimalis": return 0.0;
-            case "textum": return "";
-            case "littera": return '\0';
-            case "verum": case "falsus": case "boolean": return false;
-            default: return 0;
+            case "numerus":
+                return 0;
+            case "decimalis":
+                return 0.0;
+            case "textum":
+                return "";
+            case "littera":
+                return '\0';
+            case "verum":
+            case "falsus":
+            case "boolean":
+                return false;
+            default:
+                return 0;
         }
     }
 
@@ -624,8 +663,7 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
                 Object indexObj = visit(exprChild);
                 int index = parseToInt(indexObj);
 
-                if (currentVal instanceof List) {
-                    List<?> list = (List<?>) currentVal;
+                if (currentVal instanceof List<?> list) {
                     if (index >= 0 && index < list.size()) {
                         currentVal = list.get(index);
                     } else {
@@ -685,13 +723,20 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         double r = parseToDouble(right);
 
         switch (op) {
-            case "==": return l == r;
-            case "!=": return l != r;
-            case "<":  return l < r;
-            case "<=": return l <= r;
-            case ">":  return l > r;
-            case ">=": return l >= r;
-            default: return false;
+            case "==":
+                return l == r;
+            case "!=":
+                return l != r;
+            case "<":
+                return l < r;
+            case "<=":
+                return l <= r;
+            case ">":
+                return l > r;
+            case ">=":
+                return l >= r;
+            default:
+                return false;
         }
     }
 
@@ -747,4 +792,178 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         }
         return instance;
     }
+
+    @Override
+    public Object visitSi_sentencia(Codex_latinusParser.Si_sentenciaContext ctx) {
+        boolean condicionCumplida = false;
+
+        if (ctx.condicion() != null) {
+            Object res = visit(ctx.condicion());
+            condicionCumplida = parseToBoolean(res);
+        }
+
+        if (condicionCumplida) {
+            ejecutarBloquesSentencias(ctx.sentencia());
+            return null;
+        }
+
+        boolean aliterEjecutado = false;
+
+        if (ctx.aliter_bloque() != null) {
+            for (Codex_latinusParser.Aliter_bloqueContext aliterCtx : ctx.aliter_bloque()) {
+                boolean tieneCondicion = aliterCtx.getChildCount() > 2 && aliterCtx.getText().contains("(");
+
+                if (tieneCondicion) {
+                    Codex_latinusParser.CondicionContext condCtx = aliterCtx.getChild(Codex_latinusParser.CondicionContext.class, 0);
+                    if (condCtx != null) {
+                        Object resAliter = visit(condCtx);
+                        if (parseToBoolean(resAliter)) {
+                            ejecutarSentenciasDeAliter(aliterCtx);
+                            aliterEjecutado = true;
+                            break;
+                        }
+                    }
+                } else {
+                    if (!aliterEjecutado) {
+                        ejecutarSentenciasDeAliter(aliterCtx);
+                        aliterEjecutado = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Método auxiliar seguro para extraer y ejecutar todas las sentencias de un aliter_bloque
+     * sin importar su estructura interna en ANTLR.
+     */
+    private void ejecutarSentenciasDeAliter(ParserRuleContext aliterCtx) {
+        List<Codex_latinusParser.SentenciaContext> sentencias = aliterCtx.getRuleContexts(Codex_latinusParser.SentenciaContext.class);
+        if (sentencias != null) {
+            for (Codex_latinusParser.SentenciaContext sent : sentencias) {
+                visit(sent);
+            }
+        }
+    }
+
+    /**
+     * Método auxiliar para ejecutar una lista de sentencias genérica
+     */
+    private void ejecutarBloquesSentencias(List<Codex_latinusParser.SentenciaContext> sentencias) {
+        if (sentencias != null) {
+            for (Codex_latinusParser.SentenciaContext sent : sentencias) {
+                visit(sent);
+            }
+        }
+    }
+
+    /**
+     * Método auxiliar para asegurar que cualquier resultado se convierta de forma segura a booleano
+     */
+    private boolean parseToBoolean(Object obj) {
+        if (obj == null) return false;
+        if (obj instanceof Boolean) {
+            return (Boolean) obj;
+        }
+        return Boolean.parseBoolean(obj.toString().trim()) || obj.toString().equalsIgnoreCase("verum");
+    }
+
+    @Override
+    public Object visitCiclo_per(Codex_latinusParser.Ciclo_perContext ctx) {
+        // 1. Inicializar la variable del ciclo (ej. esto i : numerus 0)
+        if (ctx.inicializacion_per() != null) {
+            visit(ctx.inicializacion_per());
+        }
+
+        // 2. Ejecutar el bucle
+        while (true) {
+            // Evaluar la condición (ej. i < 10)
+            if (ctx.condiciones_per() != null) {
+                Object condVal = visit(ctx.condiciones_per());
+                if (!parseToBoolean(condVal)) {
+                    break; // Salir si la condición es falsa
+                }
+            }
+
+            // Ejecutar el cuerpo del ciclo
+            boolean interrumpido = false;
+            boolean continuado = false;
+
+            if (ctx.sentencia() != null) {
+                for (Codex_latinusParser.SentenciaContext sent : ctx.sentencia()) {
+                    // Verificamos si la sentencia es un salto (interrumpe / perge)
+                    if (sent.salto_sentencia() != null) {
+                        if (sent.salto_sentencia().INTERRUMPE() != null) {
+                            interrumpido = true;
+                            break;
+                        } else if (sent.salto_sentencia().PERGE() != null) {
+                            continuado = true;
+                            break;
+                        }
+                    }
+                    visit(sent);
+                }
+            }
+
+            if (interrumpido) {
+                break; // Rompe el ciclo por completo (interrumpe)
+            }
+
+            // 3. Ejecutar el incremento (ej. i++)
+            if (ctx.incremento_per() != null) {
+                visit(ctx.incremento_per());
+            }
+        }
+
+        return null;
+    }
+
+    @Override
+    public Object visitInicializacion_per(Codex_latinusParser.Inicializacion_perContext ctx) {
+        if (ctx.ESTO() != null && ctx.VARIABLE() != null) {
+            String varName = ctx.VARIABLE().getText();
+            String tipo = ctx.tipo_dato() != null ? ctx.tipo_dato().getText().toLowerCase() : "numerus";
+
+            Object val = 0;
+            if (ctx.expresion() != null) {
+                val = visit(ctx.expresion());
+            }
+
+            int line = ctx.getStart().getLine();
+            int col = ctx.getStart().getCharPositionInLine();
+
+            Symbol sym = new Symbol(varName, tipo, "variable", symbolTable.getCurrentScope(), line, col);
+            sym.setValue(val);
+            symbolTable.define(sym);
+        } else {
+            return super.visitInicializacion_per(ctx);
+        }
+        return null;
+    }
+
+    @Override
+    public Object visitIncremento_per(Codex_latinusParser.Incremento_perContext ctx) {
+        if (ctx.VARIABLE() != null) {
+            String varName = ctx.VARIABLE().getText();
+            Symbol sym = symbolTable.resolve(varName);
+            if (sym != null) {
+                Object currentVal = sym.getValue();
+                if (ctx.SUMA_ABREVIADA() != null) {
+                    double d = parseToDouble(currentVal) + 1;
+                    sym.setValue(d == Math.floor(d) ? (int) d : d);
+                } else if (ctx.RESTA_ABREVIADA() != null) {
+                    double d = parseToDouble(currentVal) - 1;
+                    sym.setValue(d == Math.floor(d) ? (int) d : d);
+                } else if (ctx.ASIGNACION() != null && ctx.expresion() != null) {
+                    sym.setValue(visit(ctx.expresion()));
+                }
+            }
+        }
+        return super.visitIncremento_per(ctx);
+    }
+
+
 }

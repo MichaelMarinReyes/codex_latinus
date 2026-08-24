@@ -59,9 +59,20 @@ public class ConditionalHandler {
     }
 
     private String obtenerTipoCondicion(Codex_latinusParser.CondicionContext condCtx) {
-        // Si la condición tiene un operador OR (condicion OR conjuncion)
         if (condCtx.OR() != null) {
-            return "verum"; // Las operaciones lógicas bien formadas devuelven booleano
+            String tipoIzq = "desconocido";
+            if (condCtx.condicion() != null && !condCtx.condicion().isEmpty()) {
+                tipoIzq = obtenerTipoCondicion(condCtx.condicion());
+            }
+            String tipoDer = "desconocido";
+            if (condCtx.conjuncion() != null) {
+                tipoDer = obtenerTipoConjuncion(condCtx.conjuncion());
+            }
+
+            if (esTipoBooleanoEstricto(tipoIzq) && esTipoBooleanoEstricto(tipoDer)) {
+                return "verum";
+            }
+            return "invalido";
         }
         if (condCtx.conjuncion() != null) {
             return obtenerTipoConjuncion(condCtx.conjuncion());
@@ -70,8 +81,21 @@ public class ConditionalHandler {
     }
 
     private String obtenerTipoConjuncion(Codex_latinusParser.ConjuncionContext conjCtx) {
+        // Validación profunda para el operador AND
         if (conjCtx.AND() != null) {
-            return "verum";
+            String tipoIzq = "desconocido";
+            if (conjCtx.conjuncion() != null) {
+                tipoIzq = obtenerTipoConjuncion(conjCtx.conjuncion());
+            }
+            String tipoDer = "desconocido";
+            if (conjCtx.negacion_logica() != null) {
+                tipoDer = obtenerTipoNegacion(conjCtx.negacion_logica());
+            }
+
+            if (esTipoBooleanoEstricto(tipoIzq) && esTipoBooleanoEstricto(tipoDer)) {
+                return "verum";
+            }
+            return "invalido";
         }
         if (conjCtx.negacion_logica() != null) {
             return obtenerTipoNegacion(conjCtx.negacion_logica());
@@ -81,7 +105,13 @@ public class ConditionalHandler {
 
     private String obtenerTipoNegacion(Codex_latinusParser.Negacion_logicaContext negCtx) {
         if (negCtx.NEGACION() != null) {
-            return obtenerTipoNegacion(negCtx.negacion_logica());
+            if (negCtx.negacion_logica() != null) {
+                String tipoSub = obtenerTipoNegacion(negCtx.negacion_logica());
+                if (esTipoBooleanoEstricto(tipoSub)) {
+                    return "verum";
+                }
+            }
+            return "invalido";
         }
         if (negCtx.primaria_logica() != null) {
             return obtenerTipoPrimariaLogica(negCtx.primaria_logica());
@@ -109,8 +139,7 @@ public class ConditionalHandler {
             return "desconocido";
         }
         if (primCtx.llamada_funcion() != null) {
-            // Si es una función, consultamos su tipo devuelto
-            return "verum"; // Ajustar si tu TypeChecker evalúa funciones específicas
+            return "verum";
         }
         return "desconocido";
     }

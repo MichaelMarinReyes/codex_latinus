@@ -7,6 +7,8 @@ import codex_latinus.backend.handlers.*;
 import codex_latinus.backend.symbols.Symbol;
 import codex_latinus.backend.symbols.SymbolTable;
 import codex_latinus.backend.utils.TypeChecker;
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,31 +31,52 @@ public class SemanticAnalyzerVisitor extends Codex_latinusBaseVisitor<Object> {
     private String currentFunctionReturnType = null;
     private boolean hasReturned = false;
     private final ConditionalHandler conditionalHandler;
+    private boolean structPrePassDone = false;
 
-    /**
-     * Constructor para inicializar el analizador semántico.
-     *
-     * @param symbolTable    Tabla de símbolos compartida o inicial. Si es nula, se crea una nueva.
-     * @param semanticErrors Lista para registrar los errores semánticos encontrados. Si es nula, se crea una nueva lista.
-     */
     public SemanticAnalyzerVisitor(SymbolTable symbolTable, List<CompilationError> semanticErrors) {
         this.symbolTable = symbolTable != null ? symbolTable : new SymbolTable();
         this.semanticErrors = semanticErrors != null ? semanticErrors : new ArrayList<>();
         this.functionHandler = new FunctionHandler(this.symbolTable, this.semanticErrors);
         this.declarationHandler = new DeclarationHandler(this.symbolTable, this.semanticErrors);
         this.typeChecker = new TypeChecker(symbolTable, semanticErrors);
+        this.structHandler = new StructHandler(this.symbolTable, this.semanticErrors, this.typeChecker);
         this.assignmentHandler = new AssignmentHandler(symbolTable, semanticErrors, typeChecker);
-        this.structHandler = new StructHandler(symbolTable, semanticErrors, typeChecker);
         this.conditionalHandler = new ConditionalHandler(this.symbolTable, semanticErrors, typeChecker);
         this.loopHandler = new LoopHandler(this.symbolTable, this.semanticErrors, this.typeChecker);
     }
 
     /**
-     * Procesa la declaración de una variable registrándola en la tabla de símbolos.
-     *
-     * @param ctx Contexto de la declaración de variable.
-     * @return    Resultado de visitar los hijos.
+     * PASADA PREVIA: Intercepta la raíz para registrar todas las estructuras
+     * globalmente antes de procesar cualquier declaración o sentencia.
      */
+    @Override
+    public Object visit(ParseTree tree) {
+        if (!structPrePassDone) {
+            structPrePassDone = true;
+            runStructPrePass(tree);
+        }
+        return super.visit(tree);
+    }
+
+    private void runStructPrePass(ParseTree tree) {
+        if (tree == null) return;
+        if (tree instanceof Codex_latinusParser.Structura_defContext) {
+            structHandler.handleStructDef((Codex_latinusParser.Structura_defContext) tree);
+        } else {
+            for (int i = 0; i < tree.getChildCount(); i++) {
+                runStructPrePass(tree.getChild(i));
+            }
+        }
+    }
+
+    /**
+     * Se omite en el recorrido normal ya que se procesó en el pre-pass para evitar duplicados.
+     */
+    @Override
+    public Object visitStructura_def(Codex_latinusParser.Structura_defContext ctx) {
+        return null;
+    }
+
     @Override
     public Object visitDeclaracion(Codex_latinusParser.DeclaracionContext ctx) {
         declarationHandler.recordDeclarationInTable(ctx);
@@ -62,15 +85,27 @@ public class SemanticAnalyzerVisitor extends Codex_latinusBaseVisitor<Object> {
             String varName = ctx.VARIABLE().get(0).getText();
             String structTypeName = ctx.VARIABLE().get(1).getText();
 
-            if (structHandler.getStructRegistry().containsKey(structTypeName)) {
+            boolean structExists = structHandler.getStructRegistry().containsKey(structTypeName);
+            String foundKey = structTypeName;
+            if (!structExists) {
+                for (String key : structHandler.getStructRegistry().keySet()) {
+                    if (key.equalsIgnoreCase(structTypeName)) {
+                        structExists = true;
+                        foundKey = key;
+                        break;
+                    }
+                }
+            }
+
+            if (structExists) {
                 int line = ctx.getStart().getLine();
                 int column = ctx.getStart().getCharPositionInLine();
 
-                Symbol sym = new Symbol(varName, structTypeName, "struct", symbolTable.getCurrentScope(), line, column);
+                Symbol sym = new Symbol(varName, foundKey, "struct", symbolTable.getCurrentScope(), line, column);
                 symbolTable.define(sym);
 
                 if (ctx.structura_instanciacion() != null) {
-                    structHandler.validarInstanciacionStruct(structTypeName, ctx.structura_instanciacion(), line, column);
+                    structHandler.validarInstanciacionStruct(foundKey, ctx.structura_instanciacion(), line, column);
                 }
             }
         }
@@ -87,6 +122,38 @@ public class SemanticAnalyzerVisitor extends Codex_latinusBaseVisitor<Object> {
     @Override
     public Object visitArreglo_declaracion(Codex_latinusParser.Arreglo_declaracionContext ctx) {
         declarationHandler.recordArrayDeclarationInTable(ctx);
+
+        if (ctx.VARIABLE() != null && ctx.VARIABLE().size() >= 2) {
+            String arrName = ctx.VARIABLE(0).getText();
+            String structTypeName = ctx.VARIABLE(1).getText();
+
+            boolean structExists = structHandler.getStructRegistry().containsKey(structTypeName);
+            String foundKey = structTypeName;
+            if (!structExists) {
+                for (String key : structHandler.getStructRegistry().keySet()) {
+                    if (key.equalsIgnoreCase(structTypeName)) {
+                        structExists = true;
+                        foundKey = key;
+                        break;
+                    }
+                }
+            }
+
+            if (structExists) {
+                int line = ctx.getStart().getLine();
+                int column = ctx.getStart().getCharPositionInLine();
+
+                Symbol sym = new Symbol(arrName, foundKey, "series_struct", symbolTable.getCurrentScope(), line, column);
+                symbolTable.define(sym);
+
+                if (ctx.elemento_arreglo_struct() != null) {
+                    for (Codex_latinusParser.Structura_instanciacionContext sInst : ctx.elemento_arreglo_struct().structura_instanciacion()) {
+                        structHandler.validarInstanciacionStruct(foundKey, sInst, line, column);
+                    }
+                }
+            }
+        }
+
         return visitChildren(ctx);
     }
 
@@ -96,16 +163,6 @@ public class SemanticAnalyzerVisitor extends Codex_latinusBaseVisitor<Object> {
         return visitChildren(ctx);
     }
 
-    @Override
-    public Object visitStructura_def(Codex_latinusParser.Structura_defContext ctx) {
-        structHandler.handleStructDef(ctx);
-        return visitChildren(ctx);
-    }
-
-    /**
-     * Valida la estructura condicional 'si', comprobando que sus condiciones
-     * sean estrictamente booleanas para evitar la 'Corrupción de Flujo'.
-     */
     @Override
     public Object visitSi_sentencia(Codex_latinusParser.Si_sentenciaContext ctx) {
         conditionalHandler.handleSi(ctx);
@@ -225,7 +282,7 @@ public class SemanticAnalyzerVisitor extends Codex_latinusBaseVisitor<Object> {
                     line, col
             ));
         } else if (ctx.expresion() != null) {
-            String returnedType = typeChecker.getTipoExpresion(ctx.expresion()); // O el método que uses para tipar expresiones
+            String returnedType = typeChecker.getTipoExpresion(ctx.expresion());
 
             if (returnedType != null && !returnedType.equalsIgnoreCase(currentFunctionReturnType)) {
                 semanticErrors.add(new CompilationError(

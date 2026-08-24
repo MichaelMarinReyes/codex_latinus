@@ -117,10 +117,6 @@ public class LoopHandler {
         }
     }
 
-    /**
-     * Recorre la jerarquía de la condición respetando la gramática:
-     * condicion -> conjuncion -> negacion_logica -> primaria_logica
-     */
     private boolean evaluarCondicionRecursiva(Codex_latinusParser.CondicionContext condCtx) {
         if (condCtx == null) return false;
 
@@ -151,22 +147,18 @@ public class LoopHandler {
     private boolean evaluarPrimariaLogica(Codex_latinusParser.Primaria_logicaContext primCtx) {
         if (primCtx == null) return false;
 
-        // Si es explícitamente un booleano (verum/falsus)
         if (primCtx.VERUM() != null || primCtx.FALSUS() != null) {
             return true;
         }
 
-        // Si es una comparación relacional (ej. x > 10), el resultado es lógicamente booleano
         if (primCtx.operador_relacional() != null) {
             return true;
         }
 
-        // Si está entre paréntesis recursivos: (condicion)
         if (primCtx.PARENTESIS_IZQ() != null && primCtx.condicion() != null) {
             return evaluarCondicionRecursiva(primCtx.condicion());
         }
 
-        // Si es una variable, revisamos su tipo en la tabla de símbolos
         if (primCtx.VARIABLE() != null) {
             String varName = primCtx.VARIABLE().getText();
             Symbol sym = symbolTable.resolve(varName);
