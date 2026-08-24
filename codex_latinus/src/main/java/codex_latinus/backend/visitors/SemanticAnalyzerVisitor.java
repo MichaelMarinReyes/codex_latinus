@@ -56,10 +56,8 @@ public class SemanticAnalyzerVisitor extends Codex_latinusBaseVisitor<Object> {
      */
     @Override
     public Object visitDeclaracion(Codex_latinusParser.DeclaracionContext ctx) {
-        // 1. Manejo estándar de declaraciones con tu DeclarationHandler
         declarationHandler.recordDeclarationInTable(ctx);
 
-        // 2. Manejo de declaraciones con tipos estructurados definidos por el usuario (ej. esto mi_personaje : Persona { ... })
         if (ctx.VARIABLE() != null && ctx.VARIABLE().size() >= 2) {
             String varName = ctx.VARIABLE().get(0).getText();
             String structTypeName = ctx.VARIABLE().get(1).getText();
@@ -215,13 +213,11 @@ public class SemanticAnalyzerVisitor extends Codex_latinusBaseVisitor<Object> {
 
     @Override
     public Object visitReddere_sentencia(Codex_latinusParser.Reddere_sentenciaContext ctx) {
-        // 1. Marcar que esta ruta de ejecución ha retornado un valor
         hasReturned = true;
 
         int line = ctx.getStart().getLine();
         int col = ctx.getStart().getCharPositionInLine();
 
-        // 2. Validar si una función 'actio' (sin retorno) está intentando retornar algo
         if (currentFunctionReturnType == null || currentFunctionReturnType.equals("void")) {
             semanticErrors.add(new CompilationError(
                     "SEMÁNTICO",
@@ -229,7 +225,6 @@ public class SemanticAnalyzerVisitor extends Codex_latinusBaseVisitor<Object> {
                     line, col
             ));
         } else if (ctx.expresion() != null) {
-            // 3. Validar concordancia de tipos en funciones 'ratio'
             String returnedType = typeChecker.getTipoExpresion(ctx.expresion()); // O el método que uses para tipar expresiones
 
             if (returnedType != null && !returnedType.equalsIgnoreCase(currentFunctionReturnType)) {

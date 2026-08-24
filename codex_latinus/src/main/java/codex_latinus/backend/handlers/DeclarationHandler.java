@@ -25,7 +25,7 @@ public class DeclarationHandler {
     /**
      * Procesa y registra una declaración de variable estándar en la tabla de símbolos.
      */
-    public void recordDeclarationInTable(Codex_latinusParser.DeclaracionContext ctx) {
+    /*public void recordDeclarationInTable(Codex_latinusParser.DeclaracionContext ctx) {
         if (ctx.VARIABLE() != null && !ctx.VARIABLE().isEmpty()) {
             String nameVar = ctx.VARIABLE(0).getText();
             String dataType = "desconocido";
@@ -58,6 +58,58 @@ public class DeclarationHandler {
                 sym.setValue(ctx.expresion().getText());
             } else if (ctx.CADENA_TEXTO() != null) {
                 sym.setValue(ctx.CADENA_TEXTO().getText());
+            } else if (ctx.CARACTER() != null) {
+                sym.setValue(ctx.CARACTER().getText());
+            } else if (contextContainsText(ctx, "verum")) {
+                sym.setValue("verum");
+            } else if (contextContainsText(ctx, "falsus")) {
+                sym.setValue("falsus");
+            }
+
+            if (!symbolTable.define(sym)) {
+                semanticErrors.add(new CompilationError("SEMÁNTICO", "El tipo '" + dataType + "' no está registrado.", line, column));
+            }
+        }
+    }*/
+
+    public void recordDeclarationInTable(Codex_latinusParser.DeclaracionContext ctx) {
+        if (ctx.VARIABLE() != null && !ctx.VARIABLE().isEmpty()) {
+            String nameVar = ctx.VARIABLE(0).getText();
+            String dataType = "desconocido";
+
+            if (ctx.tipo_dato() != null) {
+                dataType = ctx.tipo_dato().getText();
+            } else if (ctx.TEXTUM() != null) {
+                dataType = "textum";
+            } else if (ctx.LITTERA() != null) {
+                dataType = "littera";
+            } else if (ctx.VARIABLE().size() > 1) {
+                dataType = ctx.VARIABLE(1).getText();
+            } else if (contextContainsText(ctx, "verum") || contextContainsText(ctx, "falsus")) {
+                dataType = "boolean";
+            } else if (ctx.expresion() != null) {
+                dataType = "numerus";
+            }
+
+            int line = ctx.VARIABLE(0).getSymbol().getLine();
+            int column = ctx.VARIABLE(0).getSymbol().getCharPositionInLine();
+
+            if (symbolTable.isDeclaredInCurrentScope(nameVar)) {
+                semanticErrors.add(new CompilationError("SEMÁNTICO", "La variable '" + nameVar + "' ya ha sido declarada en este ámbito.", line, column));
+                return;
+            }
+
+            Symbol sym = new Symbol(nameVar, dataType, "variable", symbolTable.getCurrentScope(), line, column);
+
+            // Asignar el valor inicial utilizando la representación de Codex Latinus
+            if (ctx.expresion() != null) {
+                sym.setValue(ctx.expresion().getText());
+            } else if (ctx.CADENA_TEXTO() != null) {
+                String text = ctx.CADENA_TEXTO().getText();
+                if (text != null && text.startsWith("\"") && text.endsWith("\"")) {
+                    text = text.substring(1, text.length() - 1); // Quitar comillas
+                }
+                sym.setValue(text);
             } else if (ctx.CARACTER() != null) {
                 sym.setValue(ctx.CARACTER().getText());
             } else if (contextContainsText(ctx, "verum")) {

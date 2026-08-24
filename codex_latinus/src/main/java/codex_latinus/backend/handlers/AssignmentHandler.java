@@ -27,7 +27,6 @@ public class AssignmentHandler {
     public void handleAsignacion(Codex_latinusParser.Asignacion_sentenciaContext ctx) {
         String varName = "";
         Codex_latinusParser.ExpresionContext indexExpr = null;
-        Codex_latinusParser.ExpresionContext exprAsignacion = null;
 
         // 1. Extraer nombre de la variable y detectar si es un acceso a arreglo con corchetes
         if (ctx.VARIABLE() != null) {
@@ -41,9 +40,6 @@ public class AssignmentHandler {
                 indexExpr = acceso.expresion(0);
             }
         }
-
-        // 2. Extraer el valor a asignar (el lado derecho de la asignación)
-        exprAsignacion = ctx.expresion();
 
         boolean esArregloAsignacion = (indexExpr != null);
         int line = ctx.getStart().getLine();
@@ -69,17 +65,39 @@ public class AssignmentHandler {
             }
         }
 
-        // 5. Type Checking estricto e Inferencia
-        if (exprAsignacion != null) {
+        // 5. Type Checking estricto e Inferencia cubriendo todas las opciones del lado derecho (RHS)
+        String tipoValor = "desconocido";
+        String textoValor = "";
+        boolean rhsPresente = false;
+
+        if (ctx.expresion() != null) {
+            tipoValor = typeChecker.getTipoExpresion(ctx.expresion());
+            textoValor = ctx.expresion().getText();
+            rhsPresente = true;
+        } else if (ctx.condicion() != null) {
+            tipoValor = "boolean";
+            textoValor = ctx.condicion().getText();
+            rhsPresente = true;
+        } else if (ctx.structura_instanciacion() != null) {
+            tipoValor = "struct";
+            textoValor = ctx.structura_instanciacion().getText();
+            rhsPresente = true;
+        } else if (ctx.arreglo_literal() != null) {
+            tipoValor = "series";
+            textoValor = ctx.arreglo_literal().getText();
+            rhsPresente = true;
+        }
+
+        if (rhsPresente) {
             String tipoVariable = sym.getType() != null ? sym.getType().toLowerCase() : "desconocido";
-            String tipoValor = typeChecker.getTipoExpresion(exprAsignacion);
+            tipoValor = tipoValor.toLowerCase();
 
             if (!areTypesCompatible(tipoVariable, tipoValor)) {
                 semanticErrors.add(new CompilationError("SEMÁNTICO",
                         "Error de tipo: No se puede asignar un valor de tipo '" + tipoValor + "' a una variable de tipo '" + tipoVariable + "'.",
                         line, column));
             } else {
-                sym.setValue(exprAsignacion.getText());
+                sym.setValue(textoValor);
             }
         }
     }

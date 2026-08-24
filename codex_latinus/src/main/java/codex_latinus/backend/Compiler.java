@@ -64,13 +64,33 @@ public class Compiler {
     }
 
     public SymbolTable getSymbolTable() {
+        SymbolTable table = null;
+
         if (lastInterpreterVisitor != null && lastInterpreterVisitor.getSymbolTable() != null) {
-            return lastInterpreterVisitor.getSymbolTable();
+            table = lastInterpreterVisitor.getSymbolTable();
+        } else if (lastVisitor != null && lastVisitor.getSymbolTable() != null) {
+            table = lastVisitor.getSymbolTable();
+        } else {
+            table = new SymbolTable();
         }
-        if (lastVisitor != null && lastVisitor.getSymbolTable() != null) {
-            return lastVisitor.getSymbolTable();
+
+        // ===================================================
+        // LOG DE DEPURACIÓN EN EL BACKEND
+        // ===================================================
+        System.out.println("=== [DEBUG BACKEND] Tabla de Símbolos en Compiler ===");
+        if (table.getCurrentScope() != null && table.getCurrentScope().getSymbols() != null) {
+            table.getCurrentScope().getSymbols().forEach((name, symbol) -> {
+                System.out.println("Símbolo Guardado -> Nombre: " + symbol.getName() +
+                        " | Tipo: " + symbol.getType() +
+                        " | Valor: " + symbol.getValue());
+            });
+        } else {
+            System.out.println("El scope actual o los símbolos están en null.");
         }
-        return new SymbolTable();
+        System.out.println("=====================================================");
+        // ===================================================
+
+        return table;
     }
 
     public String parseCode(String code) {
@@ -137,9 +157,9 @@ public class Compiler {
             lastTraductionResult = (traductionResult != null) ? traductionResult : "";
 
             // 4. GENERACIÓN DE TEXTO HUMANO (Utilizando el InterpreterVisitor para simular la salida en consola)
-            InterpreterVisitor humanInterpreter = new InterpreterVisitor(globalSymbolTable, new ArrayList<>());
-            humanInterpreter.visit(tree);
-            lastHumanResult = humanInterpreter.getConsoleOutput();
+            lastInterpreterVisitor = new InterpreterVisitor(globalSymbolTable, new ArrayList<>());
+            lastInterpreterVisitor.visit(tree);
+            lastHumanResult = lastInterpreterVisitor.getConsoleOutput();
 
         } catch (Exception e) {
             lastTraductionResult = "Error interno en el proceso de análisis: " + e.getMessage();
@@ -151,7 +171,6 @@ public class Compiler {
 
         DotGenerator dotGenerator = new DotGenerator();
         lastDotCode = dotGenerator.generarDot(tree);
-        System.out.println(lastTraductionResult + "\n\n" +  lastHumanResult);
         return lastTraductionResult;
     }
 
