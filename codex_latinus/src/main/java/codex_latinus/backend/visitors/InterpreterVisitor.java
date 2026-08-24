@@ -466,7 +466,6 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
             funcName = ctx.VARIABLE().getText();
         }
 
-        // 1. Obtener todas las expresiones de los argumentos
         List<Object> argValues = new ArrayList<>();
         List<Codex_latinusParser.ExpresionContext> exprs = ctx.getRuleContexts(Codex_latinusParser.ExpresionContext.class);
         if (exprs != null) {
@@ -475,47 +474,49 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
             }
         }
 
-        // 2. Buscar la función en el registro
         ParserRuleContext funcCtx = functionRegistry.get(funcName);
         if (funcCtx == null) {
-            return null;
+            throw new RuntimeException("Error en línea " + ctx.getStart().getLine() + ": La función '" + funcName + "' no ha sido definida.");
         }
 
         Object resultadoFuncion = null;
 
-        // 3. Delegar la ejecución ejecutando secuencialmente el cuerpo de la función
         if (funcCtx instanceof Codex_latinusParser.Ratio_funcionContext ratioCtx) {
             resultadoFuncion = functionHandler.handleRatioFuncion(ratioCtx, argValues, (bodyCtx) -> {
-                if (ratioCtx.variables_locales() != null) {
-                    visit(ratioCtx.variables_locales());
-                }
-
-                if (ratioCtx.sentencia() != null) {
-                    for (Codex_latinusParser.SentenciaContext sent : ratioCtx.sentencia()) {
-                        visit(sent);
+                for (int i = 0; i < ratioCtx.getChildCount(); i++) {
+                    ParseTree child = ratioCtx.getChild(i);
+                    if (child instanceof Codex_latinusParser.Reddere_sentenciaContext reddereCtx) {
+                        return visit(reddereCtx);
                     }
-                }
-
-                if (ratioCtx.reddere_sentencia() != null) {
-                    return visit(ratioCtx.reddere_sentencia());
+                    Object res = visit(child);
+                    if (child instanceof ParserRuleContext && res instanceof ReturnSignal) {
+                        return ((ReturnSignal) res).value;
+                    }
                 }
                 return null;
             });
         } else if (funcCtx instanceof Codex_latinusParser.Actio_funcionContext actioCtx) {
             resultadoFuncion = functionHandler.handleActioFuncion(actioCtx, argValues, (bodyCtx) -> {
-                if (actioCtx.variables_locales() != null) {
-                    visit(actioCtx.variables_locales());
-                }
-                if (actioCtx.sentencia() != null) {
-                    for (Codex_latinusParser.SentenciaContext sent : actioCtx.sentencia()) {
-                        visit(sent);
-                    }
+                for (int i = 0; i < actioCtx.getChildCount(); i++) {
+                    ParseTree child = actioCtx.getChild(i);
+                    visit(child);
                 }
                 return null;
             });
         }
 
+        if (resultadoFuncion instanceof ReturnSignal) {
+            return ((ReturnSignal) resultadoFuncion).value;
+        }
+
         return resultadoFuncion;
+    }
+
+    public static class ReturnSignal {
+        public final Object value;
+        public ReturnSignal(Object value) {
+            this.value = value;
+        }
     }
 
     ParserRuleContext findBlockContext(ParserRuleContext funcCtx) {

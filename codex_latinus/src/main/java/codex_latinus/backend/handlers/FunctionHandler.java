@@ -5,6 +5,7 @@ import codex_latinus.backend.errors.CompilationError;
 import codex_latinus.backend.symbols.Symbol;
 import codex_latinus.backend.symbols.SymbolTable;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,47 +22,53 @@ public class FunctionHandler {
     }
 
     public Object handleRatioFuncion(Codex_latinusParser.Ratio_funcionContext ctx, List<Object> argValues, Function<ParserRuleContext, Object> bodyVisitor) {
-        return processFunction(ctx, ctx.VARIABLE(), ctx.parametros(), "ratio", argValues, bodyVisitor);
+        TerminalNode varNode = ctx.VARIABLE(); // Aquí sí es único en ratio_funcion
+        return processFunction(ctx, varNode, ctx.parametros(), "ratio", argValues, bodyVisitor);
     }
 
     public Object handleActioFuncion(Codex_latinusParser.Actio_funcionContext ctx, List<Object> argValues, Function<ParserRuleContext, Object> bodyVisitor) {
-        return processFunction(ctx, ctx.VARIABLE(), null, "actio", argValues, bodyVisitor);
+        TerminalNode varNode = ctx.VARIABLE(); // Aquí sí es único en actio_funcion
+        return processFunction(ctx, varNode, null, "actio", argValues, bodyVisitor);
     }
 
-    /**
-     * Lógica central unificada para el manejo de ámbitos, parámetros y ejecución de funciones.
-     */
     private Object processFunction(ParserRuleContext ctx,
-                                   org.antlr.v4.runtime.tree.TerminalNode varNode,
+                                   TerminalNode varNode,
                                    Codex_latinusParser.ParametrosContext parametrosCtx,
                                    String kind,
                                    List<Object> argValues,
                                    Function<ParserRuleContext, Object> bodyVisitor) {
 
         String nombreFunc = varNode != null ? varNode.getText() : "funcion";
-        int line = ctx.getStart().getLine();
 
+        // 1. Extraer los tipos de los parámetros manejando la lista de ANTLR
         List<String> paramTypes = new ArrayList<>();
         if (parametrosCtx != null && parametrosCtx.parametro() != null) {
             for (Codex_latinusParser.ParametroContext paramCtx : parametrosCtx.parametro()) {
                 if (paramCtx.tipo_dato() != null) {
                     paramTypes.add(paramCtx.tipo_dato().getText().toLowerCase());
                 } else {
-                    paramTypes.add("desconocido");
+                    List<TerminalNode> varList = paramCtx.VARIABLE();
+                    if (varList != null && varList.size() > 1) {
+                        paramTypes.add(varList.get(1).getText()); // Tipo struct (segunda variable)
+                    } else {
+                        paramTypes.add("desconocido");
+                    }
                 }
             }
         }
 
-        // 1. Entrar a un nuevo ámbito exclusivo para la ejecución de la función
+        // 2. Entrar al ámbito de la función
         symbolTable.enterScope(kind + "_" + nombreFunc);
 
-        // 2. Registrar los parámetros como variables locales dentro del nuevo ámbito e inyectar sus valores
+        // 3. Registrar los parámetros en la tabla de símbolos
         if (parametrosCtx != null && parametrosCtx.parametro() != null) {
             for (int i = 0; i < parametrosCtx.parametro().size(); i++) {
                 Codex_latinusParser.ParametroContext paramCtx = parametrosCtx.parametro().get(i);
+                List<TerminalNode> varList = paramCtx.VARIABLE();
 
-                if (paramCtx.VARIABLE() != null && !paramCtx.VARIABLE().isEmpty()) {
-                    String paramName = paramCtx.VARIABLE(0).getText();
+                // El nombre del parámetro es siempre la primera variable (índice 0)
+                if (varList != null && !varList.isEmpty()) {
+                    String paramName = varList.get(0).getText();
                     String paramType = paramTypes.get(i);
                     int pLine = paramCtx.getStart().getLine();
                     int pCol = paramCtx.getStart().getCharPositionInLine();

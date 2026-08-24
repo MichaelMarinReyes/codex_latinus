@@ -191,7 +191,20 @@ public class SemanticAnalyzerVisitor extends Codex_latinusBaseVisitor<Object> {
 
     @Override
     public Object visitRatio_funcion(Codex_latinusParser.Ratio_funcionContext ctx) {
+        String funcName = ctx.VARIABLE() != null ? ctx.VARIABLE().getText() : "";
         String expectedReturnType = ctx.tipo_dato() != null ? ctx.tipo_dato().getText().toLowerCase() : "desconocido";
+
+        // Registrar firma de la función en la tabla global
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+        List<String> paramTypes = new ArrayList<>();
+        if (ctx.parametros() != null && ctx.parametros().parametro() != null) {
+            for (Codex_latinusParser.ParametroContext p : ctx.parametros().parametro()) {
+                paramTypes.add(p.tipo_dato() != null ? p.tipo_dato().getText().toLowerCase() : "desconocido");
+            }
+        }
+        Symbol funcSym = new Symbol(funcName, expectedReturnType, "ratio", paramTypes.size(), paramTypes, 0, symbolTable.getCurrentScope(), line, col);
+        symbolTable.define(funcSym);
 
         String prevReturnType = currentFunctionReturnType;
         boolean prevHasReturned = hasReturned;
@@ -231,7 +244,7 @@ public class SemanticAnalyzerVisitor extends Codex_latinusBaseVisitor<Object> {
 
         if (!hasReturned) {
             semanticErrors.add(new CompilationError("SEMÁNTICO",
-                    "La función con retorno '" + (ctx.VARIABLE() != null ? ctx.VARIABLE().getText() : "") + "' no garantiza un retorno en todos sus caminos.",
+                    "La función con retorno '" + funcName + "' no garantiza un retorno en todos sus caminos.",
                     ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine()));
         }
 
@@ -243,6 +256,19 @@ public class SemanticAnalyzerVisitor extends Codex_latinusBaseVisitor<Object> {
 
     @Override
     public Object visitActio_funcion(Codex_latinusParser.Actio_funcionContext ctx) {
+        String funcName = ctx.VARIABLE() != null ? ctx.VARIABLE().getText() : "";
+
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+        List<String> paramTypes = new ArrayList<>();
+        if (ctx.parametros() != null && ctx.parametros().parametro() != null) {
+            for (Codex_latinusParser.ParametroContext p : ctx.parametros().parametro()) {
+                paramTypes.add(p.tipo_dato() != null ? p.tipo_dato().getText().toLowerCase() : "desconocido");
+            }
+        }
+        Symbol funcSym = new Symbol(funcName, "void", "actio", paramTypes.size(), paramTypes, 0, symbolTable.getCurrentScope(), line, col);
+        symbolTable.define(funcSym);
+
         String prevReturnType = currentFunctionReturnType;
         boolean prevHasReturned = hasReturned;
 
