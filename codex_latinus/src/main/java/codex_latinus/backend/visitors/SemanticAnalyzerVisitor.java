@@ -91,38 +91,6 @@ public class SemanticAnalyzerVisitor extends Codex_latinusBaseVisitor<Object> {
         declarationHandler.recordArrayDeclarationInTable(ctx);
         return visitChildren(ctx);
     }
-/*
-    @Override
-    public Object visitReddere(Codex_latinusParser.Reddere_sentenciaContext ctx) {
-        // 1. Marcar que esta ruta de ejecución ha retornado un valor
-        hasReturned = true;
-
-        int line = ctx.getStart().getLine();
-        int col = ctx.getStart().getCharPositionInLine();
-
-        // 2. Validar si una función 'actio' (sin retorno) está intentando retornar algo
-        if (currentFunctionReturnType == null || currentFunctionReturnType.equals("void")) {
-            semanticErrors.add(new CompilationError(
-                    "SEMÁNTICO",
-                    "Las funciones de tipo 'actio' no pueden utilizar la sentencia 'reddere'.",
-                    line, col
-            ));
-        } else if (ctx.expresion() != null) {
-            // 3. Validar concordancia de tipos en funciones 'ratio'
-            String returnedType = typeChecker.getTipoExpresion(ctx.expresion());
-
-            if (returnedType != null && !returnedType.equalsIgnoreCase(currentFunctionReturnType)) {
-                semanticErrors.add(new CompilationError(
-                        "SEMÁNTICO",
-                        "El tipo de retorno no coincide. Se esperaba '" + currentFunctionReturnType +
-                                "', pero se encontró '" + returnedType + "'.",
-                        line, col
-                ));
-            }
-        }
-
-        return visitChildren(ctx);
-    }*/
 
     @Override
     public Object visitAsignacion_sentencia(Codex_latinusParser.Asignacion_sentenciaContext ctx) {

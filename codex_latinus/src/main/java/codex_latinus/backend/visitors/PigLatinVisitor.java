@@ -9,7 +9,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 
 /**
  * Visitante encargado de traducir el código fuente de Codex Latinus a Pig Latin
- * recorriendo estrictamente el Árbol de Análisis Sintáctico (AST), sin usar regex ni replace.
+ * con soporte para saltos de línea, tabulaciones y agregación correcta de nodos.
  */
 public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
 
@@ -23,6 +23,10 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
         return symbolTable;
     }
 
+    /**
+     * Requerido por ANTLR para concatenar correctamente los elementos hijos
+     * de reglas que no tienen un visitante explícito (como declaraciones, expresiones, etc.).
+     */
     @Override
     protected String aggregateResult(String aggregate, String nextResult) {
         if (aggregate == null) return nextResult;
@@ -41,16 +45,65 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
         for (int i = 0; i < ctx.getChildCount(); i++) {
             String trad = visit(ctx.getChild(i));
             if (trad != null && !trad.isEmpty()) {
-                resultado.append(trad).append("\n");
+                resultado.append(trad).append("\n\n");
             }
         }
         return resultado.toString().trim();
     }
-/*
+
     @Override
-    public Object visitReddere(Codex_latinusParser.Reddere_sentenciaContext ctx) {
-        return visitChildren(ctx);
-    }*/
+    public String visitVariables(Codex_latinusParser.VariablesContext ctx) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("VARIABILES >\n");
+        for (int i = 0; i < ctx.getChildCount(); i++) {
+            ParseTree child = ctx.getChild(i);
+            String text = child.getText();
+            if (text.equals("VARIABILES") || text.equals(">")) {
+                continue;
+            }
+            String res = visit(child);
+            if (res != null && !res.isEmpty() && !res.equals(";")) {
+                sb.append("\t").append(res).append("\n");
+            }
+        }
+        return sb.toString().trim();
+    }
+
+    @Override
+    public String visitMunera(Codex_latinusParser.MuneraContext ctx) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("MUNERA >\n");
+        for (int i = 0; i < ctx.getChildCount(); i++) {
+            ParseTree child = ctx.getChild(i);
+            String text = child.getText();
+            if (text.equals("MUNERA") || text.equals(">")) {
+                continue;
+            }
+            String res = visit(child);
+            if (res != null && !res.isEmpty() && !res.equals(";")) {
+                sb.append("\t").append(res).append("\n");
+            }
+        }
+        return sb.toString().trim();
+    }
+
+    @Override
+    public String visitMaior(Codex_latinusParser.MaiorContext ctx) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("MAIOR >\n");
+        for (int i = 0; i < ctx.getChildCount(); i++) {
+            ParseTree child = ctx.getChild(i);
+            String text = child.getText();
+            if (text.equals("MAIOR") || text.equals(">") || text.equalsIgnoreCase("FINIS") || text.equals(";")) {
+                continue;
+            }
+            String res = visit(child);
+            if (res != null && !res.isEmpty()) {
+                sb.append("\t").append(res).append("\n");
+            }
+        }
+        return sb.toString().trim();
+    }
 
     @Override
     public String visitImprimir_sentencia(Codex_latinusParser.Imprimir_sentenciaContext ctx) {
@@ -70,7 +123,7 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
                 sb.append(" ");
             }
         }
-        return sb.toString().trim();
+        return sb.toString();
     }
 
     @Override
@@ -91,30 +144,22 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
                 sb.append(" ");
             }
         }
-        return sb.toString().trim();
+        return sb.toString();
     }
 
-    /**
-     * Intercepta cualquier nodo terminal (palabras clave, identificadores, tipos de datos)
-     * y aplica dinámicamente las leyes de vocales y consonantes de Pig Latin.
-     * Respeta los símbolos, números y literales de texto intactos.
-     */
     @Override
     public String visitTerminal(TerminalNode node) {
         String text = node.getText();
         if (text == null || text.isEmpty()) return "";
 
-        // Si es una cadena de texto literal o un carácter, se mantiene intacto
         if ((text.startsWith("\"") && text.endsWith("\"")) || (text.startsWith("'") && text.endsWith("'"))) {
             return text;
         }
 
-        // Si es una palabra alfabética (palabra reservada o identificador), se traduce
         if (isAlphabeticWord(text)) {
             return applyPigLatinRule(text);
         }
 
-        // Símbolos y números se devuelven tal cual
         return text;
     }
 
@@ -124,7 +169,7 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
             ParseTree child = node.getChild(i);
             String res = visit(child);
             if (res != null && !res.isEmpty()) {
-                if (sb.length() > 0 && !res.equals(";") && !res.equals(")")) {
+                if (sb.length() > 0 && !res.equals(";") && !res.equals(")") && !res.equals("(")) {
                     sb.append(" ");
                 }
                 sb.append(res);
@@ -143,9 +188,6 @@ public class PigLatinVisitor extends Codex_latinusBaseVisitor<String> {
         return true;
     }
 
-    /**
-     * Aplica la Ley de Vocales y la Ley de Consonantes del Pig Latin.
-     */
     private String applyPigLatinRule(String palabra) {
         if (palabra == null || palabra.isEmpty()) return palabra;
         if (!isAlphabeticWord(palabra)) return palabra;

@@ -36,10 +36,41 @@ public class Compiler {
 
     private String lastParsedCode = null;
     private String lastTraductionResult = "";
-    private String lastHumanResult = ""; // Almacena el resultado humano simulado
+    private String lastHumanResult = "";
 
     public List<CompilationError> getCompilationErrors() {
         return compilationErrors;
+    }
+
+    public List<StackState> getStackSteps(String code) {
+        parseCode(code);
+        return lastStackSteps;
+    }
+
+    private void generateStackSteps(ParseTree tree) {
+        if (tree == null) return;
+        StackVisualizerListener listener = new StackVisualizerListener();
+        ParseTreeWalker walker = new ParseTreeWalker();
+        walker.walk(listener, tree);
+        lastStackSteps = listener.getHistory();
+    }
+
+    public List<StackState> getLastStackSteps() {
+        return lastStackSteps;
+    }
+
+    public String getLastDotCode() {
+        return lastDotCode;
+    }
+
+    public SymbolTable getSymbolTable() {
+        if (lastInterpreterVisitor != null && lastInterpreterVisitor.getSymbolTable() != null) {
+            return lastInterpreterVisitor.getSymbolTable();
+        }
+        if (lastVisitor != null && lastVisitor.getSymbolTable() != null) {
+            return lastVisitor.getSymbolTable();
+        }
+        return new SymbolTable();
     }
 
     public String parseCode(String code) {
@@ -120,7 +151,7 @@ public class Compiler {
 
         DotGenerator dotGenerator = new DotGenerator();
         lastDotCode = dotGenerator.generarDot(tree);
-
+        System.out.println(lastTraductionResult + "\n\n" +  lastHumanResult);
         return lastTraductionResult;
     }
 
@@ -187,36 +218,5 @@ public class Compiler {
 
     public String executeCode(String code) {
         return executeCode(code, new ArrayList<>());
-    }
-
-    public List<StackState> getStackSteps(String code) {
-        parseCode(code);
-        return lastStackSteps;
-    }
-
-    private void generateStackSteps(ParseTree tree) {
-        if (tree == null) return;
-        StackVisualizerListener listener = new StackVisualizerListener();
-        ParseTreeWalker walker = new ParseTreeWalker();
-        walker.walk(listener, tree);
-        lastStackSteps = listener.getHistory();
-    }
-
-    public List<StackState> getLastStackSteps() {
-        return lastStackSteps;
-    }
-
-    public String getLastDotCode() {
-        return lastDotCode;
-    }
-
-    public SymbolTable getSymbolTable() {
-        if (lastInterpreterVisitor != null && lastInterpreterVisitor.getSymbolTable() != null) {
-            return lastInterpreterVisitor.getSymbolTable();
-        }
-        if (lastVisitor != null && lastVisitor.getSymbolTable() != null) {
-            return lastVisitor.getSymbolTable();
-        }
-        return new SymbolTable();
     }
 }

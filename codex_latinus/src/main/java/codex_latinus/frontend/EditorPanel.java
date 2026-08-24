@@ -84,7 +84,6 @@ public class EditorPanel extends javax.swing.JPanel {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     // End of variables declaration//GEN-END:variables
-    
     public String getCodeText() {
         return codeTextArea.getText();
     }
@@ -102,7 +101,9 @@ public class EditorPanel extends javax.swing.JPanel {
     }
 
     /**
-     * Método de compatibilidad para establecer texto en las consolas desde MainWindow.
+     * Método de compatibilidad para establecer texto en las consolas desde
+     * MainWindow.
+     *
      * @param text El texto a mostrar.
      */
     public void setConsoleTextArea(String text) {
@@ -123,7 +124,7 @@ public class EditorPanel extends javax.swing.JPanel {
             pigLatinConsole.append(text + "\n");
         }
     }
-    
+
     /**
      * Inicializa los componentes del editor de código, consola, números de
      * línea, botón compilar y barra de estado.
@@ -204,11 +205,19 @@ public class EditorPanel extends javax.swing.JPanel {
         // Listener para coloreado sintáctico dinámico
         codeTextArea.getDocument().addDocumentListener(new DocumentListener() {
             @Override
-            public void insertUpdate(DocumentEvent e) { triggerHighlight(); }
+            public void insertUpdate(DocumentEvent e) {
+                triggerHighlight();
+            }
+
             @Override
-            public void removeUpdate(DocumentEvent e) { triggerHighlight(); }
+            public void removeUpdate(DocumentEvent e) {
+                triggerHighlight();
+            }
+
             @Override
-            public void changedUpdate(DocumentEvent e) { triggerHighlight(); }
+            public void changedUpdate(DocumentEvent e) {
+                triggerHighlight();
+            }
         });
 
         // Listener para posición del cursor
@@ -236,15 +245,17 @@ public class EditorPanel extends javax.swing.JPanel {
     }
 
     private void inicializarColores() {
-        colorSecciones = new Color(128, 0, 128); 
-        colorKeywords = new Color(0, 0, 255); 
-        colorTipos = new Color(0, 128, 128); 
-        colorCadenas = new Color(0, 128, 0); 
-        colorComentarios = new Color(128, 128, 128); 
+        colorSecciones = new Color(128, 0, 128);
+        colorKeywords = new Color(0, 0, 255);
+        colorTipos = new Color(0, 128, 128);
+        colorCadenas = new Color(0, 128, 0);
+        colorComentarios = new Color(128, 128, 128);
     }
 
     private void triggerHighlight() {
-        if (isUpdatingHighlight) return;
+        if (isUpdatingHighlight) {
+            return;
+        }
         isUpdatingHighlight = true;
 
         javax.swing.SwingUtilities.invokeLater(() -> {
@@ -296,27 +307,26 @@ public class EditorPanel extends javax.swing.JPanel {
         }
 
         try {
-            // 1. Obtener resultado de traducción a PigLatin
-            result = compiler.parseCode(codigoFuente);
-            pigLatinConsole.setForeground(new Color(220, 220, 220));
-            pigLatinConsole.setText(result);
+            String pigLatinResult = compiler.parseCode(codigoFuente);
+            pigLatinConsole.setForeground(new Color(0, 230, 118));
+            pigLatinConsole.setText(pigLatinResult != null ? pigLatinResult : "");
 
-            // 2. Si pasa la compilación sin errores, ejecutar en la segunda pestaña
             if (compiler.getCompilationErrors().isEmpty()) {
-                String executionOutput = compiler.executeCode(codigoFuente);
-                executionConsole.setForeground(new Color(220, 220, 220));
-                executionConsole.setText(executionOutput != null && !executionOutput.isEmpty() 
-                        ? executionOutput 
+                String humanResult = compiler.getHumanTranslatedText();
+
+                executionConsole.setForeground(new Color(100, 210, 255));
+                executionConsole.setText(humanResult != null && !humanResult.isEmpty()
+                        ? humanResult 
                         : "Ejecución finalizada con éxito (Sin salida por consola).");
             } else {
                 executionConsole.setForeground(Color.ORANGE);
-                executionConsole.setText("No se puede ejecutar debido a errores de compilación o análisis.");
+                executionConsole.setText("No se puede ejecutar debido a errores en el código:\n" + compiler.getCompilationErrors());
             }
 
         } catch (Exception ex) {
             pigLatinConsole.setForeground(Color.RED);
             pigLatinConsole.setText("Error en la traducción:\n" + ex.getMessage());
-            
+
             executionConsole.setForeground(Color.RED);
             executionConsole.setText("Error en la ejecución:\n" + ex.getMessage());
         }

@@ -59,18 +59,9 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
         }
 
         String lineaImpresa = output.toString().trim();
-        System.out.println(lineaImpresa); // Muestra en consola
         consoleOutput.append(lineaImpresa).append("\n");
         return null;
     }
-/*
-    @Override
-    public Object visitReddere(Codex_latinusParser.Reddere_sentenciaContext ctx) {
-        if (ctx.expresion() != null) {
-            return visit(ctx.expresion());
-        }
-        return null;
-    }*/
 
     @Override
     public Object visitLeer_sentencia(Codex_latinusParser.Leer_sentenciaContext ctx) {
