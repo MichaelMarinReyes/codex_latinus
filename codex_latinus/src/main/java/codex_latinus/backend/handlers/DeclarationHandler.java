@@ -25,53 +25,6 @@ public class DeclarationHandler {
     /**
      * Procesa y registra una declaración de variable estándar en la tabla de símbolos.
      */
-    /*public void recordDeclarationInTable(Codex_latinusParser.DeclaracionContext ctx) {
-        if (ctx.VARIABLE() != null && !ctx.VARIABLE().isEmpty()) {
-            String nameVar = ctx.VARIABLE(0).getText();
-            String dataType = "desconocido";
-
-            if (ctx.tipo_dato() != null) {
-                dataType = ctx.tipo_dato().getText();
-            } else if (ctx.TEXTUM() != null) {
-                dataType = "textum";
-            } else if (ctx.LITTERA() != null) {
-                dataType = "littera";
-            } else if (ctx.VARIABLE().size() > 1) {
-                dataType = ctx.VARIABLE(1).getText();
-            } else if (contextContainsText(ctx, "verum") || contextContainsText(ctx, "falsus")) {
-                dataType = "boolean";
-            } else if (ctx.expresion() != null) {
-                dataType = "numerus";
-            }
-
-            int line = ctx.VARIABLE(0).getSymbol().getLine();
-            int column = ctx.VARIABLE(0).getSymbol().getCharPositionInLine();
-
-            if (symbolTable.isDeclaredInCurrentScope(nameVar)) {
-                semanticErrors.add(new CompilationError("SEMÁNTICO", "La variable '" + nameVar + "' ya ha sido declarada en este ámbito.", line, column));
-                return;
-            }
-
-            Symbol sym = new Symbol(nameVar, dataType, "variable", symbolTable.getCurrentScope(), line, column);
-
-            if (ctx.expresion() != null) {
-                sym.setValue(ctx.expresion().getText());
-            } else if (ctx.CADENA_TEXTO() != null) {
-                sym.setValue(ctx.CADENA_TEXTO().getText());
-            } else if (ctx.CARACTER() != null) {
-                sym.setValue(ctx.CARACTER().getText());
-            } else if (contextContainsText(ctx, "verum")) {
-                sym.setValue("verum");
-            } else if (contextContainsText(ctx, "falsus")) {
-                sym.setValue("falsus");
-            }
-
-            if (!symbolTable.define(sym)) {
-                semanticErrors.add(new CompilationError("SEMÁNTICO", "El tipo '" + dataType + "' no está registrado.", line, column));
-            }
-        }
-    }*/
-
     public void recordDeclarationInTable(Codex_latinusParser.DeclaracionContext ctx) {
         if (ctx.VARIABLE() != null && !ctx.VARIABLE().isEmpty()) {
             String nameVar = ctx.VARIABLE(0).getText();
@@ -101,22 +54,26 @@ public class DeclarationHandler {
 
             Symbol sym = new Symbol(nameVar, dataType, "variable", symbolTable.getCurrentScope(), line, column);
 
-            // Asignar el valor inicial utilizando la representación de Codex Latinus
+            // Obtener el valor inicial bruto
+            Object initialValue = null;
             if (ctx.expresion() != null) {
-                sym.setValue(ctx.expresion().getText());
+                initialValue = ctx.expresion().getText();
             } else if (ctx.CADENA_TEXTO() != null) {
                 String text = ctx.CADENA_TEXTO().getText();
                 if (text != null && text.startsWith("\"") && text.endsWith("\"")) {
                     text = text.substring(1, text.length() - 1); // Quitar comillas
                 }
-                sym.setValue(text);
+                initialValue = text;
             } else if (ctx.CARACTER() != null) {
-                sym.setValue(ctx.CARACTER().getText());
+                initialValue = ctx.CARACTER().getText();
             } else if (contextContainsText(ctx, "verum")) {
-                sym.setValue("verum");
+                initialValue = "verum";
             } else if (contextContainsText(ctx, "falsus")) {
-                sym.setValue("falsus");
+                initialValue = "falsus";
             }
+
+            // Normalizar y asignar el valor (traduciendo true/false a verum/falsus si aplica)
+            sym.setValue(normalizeBooleanValue(dataType, initialValue));
 
             if (!symbolTable.define(sym)) {
                 semanticErrors.add(new CompilationError("SEMÁNTICO", "El tipo '" + dataType + "' no está registrado.", line, column));
@@ -156,12 +113,6 @@ public class DeclarationHandler {
         }
     }
 
-    private boolean contextContainsText(ParserRuleContext ctx, String textToFind) {
-        if (ctx == null || textToFind == null) return false;
-        String fullText = ctx.getText();
-        return fullText != null && fullText.contains(textToFind);
-    }
-
     public void recordLocalDeclarationInTable(Codex_latinusParser.Declaracion_localContext ctx) {
         if (ctx.VARIABLE() != null && !ctx.VARIABLE().isEmpty()) {
             String nameVar = ctx.VARIABLE(0).getText();
@@ -189,13 +140,38 @@ public class DeclarationHandler {
 
             Symbol sym = new Symbol(nameVar, dataType, "variable", symbolTable.getCurrentScope(), line, column);
 
+            Object initialValue = null;
             if (ctx.expresion() != null) {
-                sym.setValue(ctx.expresion().getText());
+                initialValue = ctx.expresion().getText();
             }
+
+            sym.setValue(normalizeBooleanValue(dataType, initialValue));
 
             if (!symbolTable.define(sym)) {
                 semanticErrors.add(new CompilationError("SEMÁNTICO", "El tipo '" + dataType + "' no está registrado.", line, column));
             }
         }
+    }
+
+    /**
+     * Convierte valores booleanos o cadenas lógicas a la representación semántica de Codex Latinus (verum / falsus).
+     */
+    private Object normalizeBooleanValue(String dataType, Object value) {
+        if (value == null) return null;
+        if (dataType != null && (dataType.equalsIgnoreCase("boolean") || dataType.equalsIgnoreCase("verum") || dataType.equalsIgnoreCase("falsus"))) {
+            String valStr = String.valueOf(value).trim();
+            if (valStr.equalsIgnoreCase("true") || valStr.equalsIgnoreCase("verum")) {
+                return "verum";
+            } else if (valStr.equalsIgnoreCase("false") || valStr.equalsIgnoreCase("falsus")) {
+                return "falsus";
+            }
+        }
+        return value;
+    }
+
+    private boolean contextContainsText(ParserRuleContext ctx, String textToFind) {
+        if (ctx == null || textToFind == null) return false;
+        String fullText = ctx.getText();
+        return fullText != null && fullText.contains(textToFind);
     }
 }

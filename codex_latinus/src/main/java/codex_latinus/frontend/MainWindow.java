@@ -323,22 +323,7 @@ public class MainWindow extends javax.swing.JFrame {
         if (table != null && table.getCurrentScope() != null) {
             collectSymbolsRecursive(table.getCurrentScope(), allSymbols);
         }
-        
-        // ==========================================
-        // LOG DE DEPURACIÓN PARA VER QUÉ LLEGÓ AQUÍ
-        // ==========================================
-        System.out.println("=== [DEBUG MAINWINDOW] Tabla de Símbolos Solicitada ===");
-        if (allSymbols.isEmpty()) {
-            System.out.println("La lista 'allSymbols' está VACÍA (no hay variables registradas).");
-        } else {
-            for (Symbol s : allSymbols) {
-                System.out.println("Variable -> Nombre: " + s.getName() + 
-                                   " | Tipo: " + s.getType() + 
-                                   " | Valor actual: " + s.getValue());
-            }
-        }
-        System.out.println("=====================================================");
-        // ==========================================
+
         SymbolTablePanel panel = new SymbolTablePanel();
         panel.loadSymbols(allSymbols);
         paintPanel(panel);

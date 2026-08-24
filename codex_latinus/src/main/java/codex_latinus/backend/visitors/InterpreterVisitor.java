@@ -73,14 +73,14 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
             String varName = ctx.VARIABLE().getText();
             Symbol sym = symbolTable.resolve(varName);
             if (sym != null) {
-                String valorSimulado = mockInputs.poll();
+                String valorSimulado = (mockInputs != null) ? mockInputs.poll() : null;
 
-                if (valorSimulado != null) {
+                if (valorSimulado != null && !valorSimulado.isEmpty()) {
                     Object parsedValue = parseValueByType(valorSimulado, sym.getType());
                     sym.setValue(parsedValue);
                     consoleOutput.append(valorSimulado).append("\n");
                 } else {
-                    assignDefaultValue(sym);
+                    // Si no hay valor simulado, NO sobrescribir la variable.
                 }
             }
         }
@@ -339,7 +339,7 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
             funcName = ctx.VARIABLE().getText();
         }
 
-        // 1. Obtener todas las expresiones de forma genérica (sin importar el nombre del método en ANTLR)
+        // 1. Obtener todas las expresiones de los argumentos
         List<Object> argValues = new ArrayList<>();
         List<Codex_latinusParser.ExpresionContext> exprs = ctx.getRuleContexts(Codex_latinusParser.ExpresionContext.class);
         if (exprs != null) {
@@ -348,16 +348,17 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
             }
         }
 
-        // 2. Buscar la función en el registro de contextos
+        // 2. Buscar la función en el registro
         ParserRuleContext funcCtx = functionRegistry.get(funcName);
         if (funcCtx == null) {
-            return null; // La función no existe o no fue registrada
+            return null;
         }
 
-        // 3. Delegar la ejecución al FunctionHandler de forma segura
+        Object resultadoFuncion = null;
+
+        // 3. Delegar la ejecución y capturar el resultado
         if (funcCtx instanceof Codex_latinusParser.Ratio_funcionContext ratioCtx) {
-            return functionHandler.handleRatioFuncion(ratioCtx, argValues, (bodyCtx) -> {
-                // Visitar el bloque/cuerpo interno de la función de manera genérica
+            resultadoFuncion = functionHandler.handleRatioFuncion(ratioCtx, argValues, (bodyCtx) -> {
                 ParserRuleContext bloque = findBlockContext(ratioCtx);
                 if (bloque != null) {
                     return visit(bloque);
@@ -365,7 +366,7 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
                 return null;
             });
         } else if (funcCtx instanceof Codex_latinusParser.Actio_funcionContext actioCtx) {
-            return functionHandler.handleActioFuncion(actioCtx, argValues, (bodyCtx) -> {
+            resultadoFuncion = functionHandler.handleActioFuncion(actioCtx, argValues, (bodyCtx) -> {
                 ParserRuleContext bloque = findBlockContext(actioCtx);
                 if (bloque != null) {
                     return visit(bloque);
@@ -374,7 +375,10 @@ public class InterpreterVisitor extends Codex_latinusBaseVisitor<Object> {
             });
         }
 
-        return null;
+        // --- [DEBUG BACKEND] AQUÍ VES EL VALOR ANTES DE SER ASIGNADO ---
+        System.out.println("=== [DEBUG BACKEND] Función '" + funcName + "' retorna el valor: " + resultadoFuncion + " ===");
+
+        return resultadoFuncion;
     }
 
     /**

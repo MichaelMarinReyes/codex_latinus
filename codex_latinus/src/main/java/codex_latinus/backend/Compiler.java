@@ -73,7 +73,7 @@ public class Compiler {
         } else {
             table = new SymbolTable();
         }
-
+/*
         // ===================================================
         // LOG DE DEPURACIÓN EN EL BACKEND
         // ===================================================
@@ -88,7 +88,7 @@ public class Compiler {
             System.out.println("El scope actual o los símbolos están en null.");
         }
         System.out.println("=====================================================");
-        // ===================================================
+        // ===================================================*/
 
         return table;
     }
